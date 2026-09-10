@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>樹狀圖整理工具_v1.0.7</title>
+<style>
+:root{
+  --bg:#f5f7fb; --panel:#fff; --line:#dce2ea; --text:#202733;
+  --muted:#6b7280; --accent:#4f46e5; --accent2:#eef2ff;
+  --danger:#dc2626; --shadow:0 8px 28px rgba(30,41,59,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;height:100vh;overflow:hidden}
+header{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:10px;overflow:hidden}
+.logo{font-size:20px;font-weight:800;white-space:nowrap}
+.badge{font-size:12px;color:var(--accent);background:var(--accent2);padding:5px 8px;border-radius:999px}
+.toolbar{margin-left:0;display:flex;align-items:center;gap:7px;flex-wrap:nowrap;min-width:0;overflow-x:auto;scrollbar-width:none}.toolbar::-webkit-scrollbar{display:none}
+button{border:1px solid var(--line);background:#fff;color:var(--text);padding:8px 11px;border-radius:8px;cursor:pointer;font-size:13px}.apply-subbranch-active{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important;box-shadow:0 0 0 2px rgba(37,99,235,.22)!important}
+.history-icon-btn{min-width:38px;width:38px;padding:8px 0;font-size:18px;line-height:1}.history-icon-btn:hover{background:#f8fafc}button:hover{background:#f8fafc}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.danger{color:var(--danger)}
+input,textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit;background:#fff}
+textarea{resize:vertical;min-height:120px}
+.layout{height:calc(100vh - 64px);display:grid;grid-template-columns:minmax(360px,1fr) 390px;min-height:0}
+.left{display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--line)}
+.searchbar{padding:14px;border-bottom:1px solid var(--line);background:#fff;display:flex;gap:8px}
+.tree-wrap{overflow:auto;padding:18px 20px 80px}
+.tree{min-width:max-content}
+.node-row{display:flex;align-items:center;min-height:42px;position:relative}
+.node-row.selected>.node-card{outline:2px solid #a5b4fc;background:#f5f7ff}
+.toggle{width:28px;height:28px;padding:0;border:0;background:transparent;font-size:15px;color:var(--muted)}
+.toggle.empty{visibility:hidden}
+.node-card{display:flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:9px;padding:7px 10px;cursor:pointer;min-width:230px}
+.node-card:hover{background:#fff;border-color:var(--line);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.node-name{font-weight:650}
+.node-type{font-size:11px;color:var(--muted);background:#f1f5f9;border-radius:999px;padding:3px 7px}
+.children{margin-left:17px;border-left:1px solid #cbd5e1;padding-left:16px}
+.children>.branch{position:relative}
+.children>.branch:before{content:"";position:absolute;left:-17px;top:21px;width:16px;border-top:1px solid #cbd5e1}
+.empty-state{padding:50px;text-align:center;color:var(--muted)}
+.right{background:#fff;overflow:auto;padding:22px}
+.panel-title{font-size:18px;font-weight:800;margin-bottom:18px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:12px;font-weight:700;color:#4b5563;margin-bottom:6px}
+.hint{font-size:12px;color:var(--muted);line-height:1.6}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+.full{grid-column:1/-1}
+.stat{margin-top:20px;padding:12px;background:#f8fafc;border-radius:10px;font-size:12px;color:#64748b}
+mark{background:#fef08a;border-radius:2px}
+@media(max-width:850px){body{overflow:auto}.layout{height:auto;grid-template-columns:1fr}.left{height:65vh;border-right:0;border-bottom:1px solid var(--line)}.right{min-height:35vh}}
+
+.flow-overview{background:#fff;border-bottom:1px solid var(--line);padding:14px 18px;overflow:auto}
+.flow-title{font-size:12px;font-weight:800;color:#64748b;margin-bottom:9px}
+.flow{display:flex;align-items:center;gap:7px;min-width:max-content}
+.flow-box{padding:7px 11px;border:1px solid #cbd5e1;border-radius:9px;background:#f8fafc;font-size:12px;font-weight:700;white-space:nowrap}
+.flow-box.choice{background:#eef2ff;border-color:#a5b4fc;color:#3730a3}
+.flow-arrow{color:#94a3b8;font-weight:800}
+.flow-branches{display:flex;gap:7px;align-items:center}
+.flow-branch{display:flex;align-items:center;gap:6px}
+
+/* v0.2 流程圖視覺 */
+.flow-overview{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;overflow:auto}
+.flow-title{font-size:12px;font-weight:800;color:#64748b;margin-bottom:8px}
+.flow{display:flex;align-items:center;gap:6px;min-width:max-content}
+.flow-box{padding:6px 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font-size:12px;font-weight:700;white-space:nowrap}
+.flow-box.choice{background:#eef2ff;border-color:#a5b4fc;color:#3730a3}
+.flow-arrow{color:#94a3b8;font-weight:800}
+.tree-wrap{overflow:auto;padding:30px 34px 90px;background:#fff}
+.flow-canvas{position:relative;min-width:980px;min-height:600px;padding:10px}
+.flow-node{position:absolute;z-index:2;min-width:82px;text-align:center;padding:7px 12px;background:#fff;border:0;border-radius:2px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:none}
+.flow-node:hover{background:#f8fafc}
+.flow-node.selected{outline:2px solid #818cf8;outline-offset:2px}
+.flow-node.branch{border-radius:0}
+.flow-node .sub{display:block;margin-top:3px;font-size:10px;font-weight:500;color:#6b7280}
+.flow-svg{position:absolute;inset:0;z-index:1;pointer-events:none}
+.flow-svg path,.flow-svg line{stroke:#111;stroke-width:1.2;fill:none;vector-effect:non-scaling-stroke}
+.flow-svg .arrow{fill:#111;stroke:none}
+.flow-help{margin-top:12px;color:#64748b;font-size:12px}
+
+/* v0.1.7：沿用 v0.1.3，僅修正文字完整顯示 */
+.flow-canvas{overflow:visible}
+.flow-node{
+  min-width:96px;
+  max-width:220px;
+  white-space:normal;
+  line-height:1.45;
+  overflow:visible;
+  text-overflow:clip;
+  word-break:break-word;
+}
+.flow-node .sub{
+  white-space:normal;
+  overflow:visible;
+}
+.flow-help{white-space:normal}
+
+
+/* v0.1.8：連續引線修正 */
+.flow-svg{overflow:visible}
+.flow-svg line{stroke:#111;stroke-width:1.2;fill:none;vector-effect:non-scaling-stroke}
+.flow-node{background:transparent;box-shadow:none}
+.flow-node .node-text,.flow-node .sub{
+  background:#fff;
+  padding:0 3px;
+  white-space:nowrap;
+}
+.flow-node.selected{outline:2px solid #818cf8;outline-offset:3px;background:#fff}
+
+
+/* v0.1.9：完整顯示所有分支 */
+.flow-canvas{position:relative;overflow:auto;background:#fff}
+.flow-svg{position:absolute;left:0;top:0;z-index:1;pointer-events:none}
+.flow-node{
+ position:absolute;z-index:2;min-width:86px;max-width:150px;
+ padding:4px 7px;background:#fff;border:0;box-shadow:none;
+ text-align:left;white-space:normal;line-height:1.35;
+}
+.flow-node .node-text{display:inline;font-size:14px;font-weight:700}
+.flow-node .sub{display:inline;font-size:10px;color:#94a3b8;margin-left:6px;white-space:nowrap}
+.flow-node.selected{outline:2px solid #818cf8;outline-offset:3px;border-radius:5px}
+
+
+/* v0.2.0：自由定位節點＋滑鼠拉線 */
+.editor-layout{height:calc(100vh - 60px);display:grid;grid-template-columns:minmax(700px,1fr) 360px}
+.canvas-panel{min-width:0;min-height:0;background:#fff;display:grid;grid-template-rows:auto minmax(0,1fr) 36px;position:relative}
+.canvas-toolbar{min-width:0;min-height:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid #e5e7eb;background:#fff}
+.canvas-toolbar .tip{font-size:11px;color:#64748b;margin-left:auto}
+.canvas-scroll{position:relative;min-width:0;min-height:0;overflow:hidden;background:#fafafa;touch-action:none;scrollbar-width:none;-ms-overflow-style:none}.canvas-scroll::-webkit-scrollbar{display:none;width:0;height:0}
+.diagram{position:relative;width:1800px;height:1100px;background-image:radial-gradient(circle,rgba(100,116,139,.28) 1px,transparent 1.2px);background-size:10px 10px;background-position:0 0}
+.diagram-svg{position:absolute;left:0;top:0;width:1800px;height:1100px;z-index:1;overflow:visible}
+.conn{stroke:#111;stroke-width:1.6;fill:none;pointer-events:stroke}
+.conn.previewing{stroke-dasharray:10 8;animation:connFlow .8s linear infinite}
+@keyframes connFlow{to{stroke-dashoffset:-36}}
+@media (prefers-reduced-motion:reduce){.conn.previewing{animation-duration:2.4s}}
+.conn.selected{stroke:#4f46e5;stroke-width:3}
+.conn-arrow{fill:#111;stroke:none}
+.temp-line{stroke:#4f46e5;stroke-width:2;stroke-dasharray:7 5;fill:none;pointer-events:none}
+.flow-node{position:absolute;z-index:3;min-width:110px;max-width:210px;padding:7px 12px;background:#fff;border:1px solid #b8c0cc;border-radius:6px;cursor:grab;user-select:none;touch-action:none;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.flow-node:active{cursor:grabbing}
+.flow-node.selected{border:2px solid #6366f1;padding:11px 16px}
+.flow-node.grouped::after{content:"群";position:absolute;right:-7px;top:-7px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:#64748b;color:#fff;font:700 9px/16px Arial,sans-serif;text-align:center;pointer-events:none}
+.flow-node .dn-name{display:block;font-size:14px;font-weight:750;line-height:1.4;word-break:break-word}
+.flow-node .dn-type{display:block;font-size:10px;color:#64748b;margin-top:2px}
+/* 四邊都有「隱形」連線熱區；平常不顯示圓點，只有開始拉線時才顯示 */
+.handle{
+  position:absolute;width:22px;height:22px;
+  border:0;background:transparent;border-radius:50%;
+  z-index:5;cursor:crosshair;
+}
+.handle::after{
+  content:"";position:absolute;width:10px;height:10px;
+  left:6px;top:6px;border:2px solid #4f46e5;
+  background:#fff;border-radius:50%;
+  opacity:0;transform:scale(.65);transition:opacity .08s,transform .08s;
+}
+.handle.active::after{
+  opacity:1;transform:scale(1);
+}
+.handle-right{right:-11px;top:50%;margin-top:-11px}
+.handle-left{left:-11px;top:50%;margin-top:-11px}
+.handle-top{top:-11px;left:50%;margin-left:-11px}
+.handle-bottom{bottom:-11px;left:50%;margin-left:-11px}
+.flow-node.connection-ready .handle::after{opacity:1;transform:scale(1)}
+.flow-node.connection-target .handle::after{opacity:1;transform:scale(1)}
+.canvas-status{font-size:11px;color:#64748b;padding:6px 12px;border-top:1px solid #e5e7eb;background:#fff;flex-shrink:0;min-height:28px;box-sizing:border-box}
+@media(max-width:900px){.editor-layout{grid-template-columns:1fr}.right{display:none}}
+
+
+/* v0.2.2：直線引線＋10單位座標點／軸線 */
+.coord-layer{
+  position:absolute;left:0;top:0;width:100%;height:100%;
+  z-index:0;pointer-events:none!important;display:none;
+}
+.coord-layer.on{display:block;pointer-events:none!important}
+.coord-grid{pointer-events:none!important;
+  position:absolute;inset:0;
+  background-image:radial-gradient(circle, rgba(100,116,139,.28) 1px, transparent 1.2px);
+  background-size:10px 10px;background-position:0 0;
+}
+.coord-axis-x,.coord-axis-y{pointer-events:none!important;
+  position:absolute;background:rgba(79,70,229,.32);
+}
+.coord-axis-x{left:0;right:0;height:1px}
+.coord-axis-y{top:0;bottom:0;width:1px}
+.coord-label{pointer-events:none!important;
+  position:absolute;font:10px/1 Arial,sans-serif;color:#64748b;
+  background:rgba(255,255,255,.85);padding:1px 3px;border-radius:3px;
+}
+.diagram{z-index:0}
+.diagram-svg{z-index:1}
+.flow-node{z-index:3}
+
+
+/* v0.3.0：縮放／空白拖曳、引線轉彎點、PS式對齊輔助線 */
+.canvas-scroll.pan-ready{cursor:grab}
+.canvas-scroll.panning{cursor:grabbing}
+.diagram{
+  transform-origin:0 0;
+  background-image:none;
+}
+.flow-node{
+  position:absolute;
+  z-index:3;
+  min-width:120px;max-width:220px;
+  /* 流程圖寬、高各增加 10px：讓左右／上下節點中心落在 10px 定位點上。 */
+  padding:12px 17px;
+  background:#fff;border:1px solid #b8c0cc;border-radius:6px;
+  cursor:grab;user-select:none;touch-action:none;
+  box-shadow:0 1px 2px rgba(15,23,42,.05);
+}
+.flow-node:active{cursor:grabbing}
+.flow-node.selected{border:2px solid #6366f1;padding:11px 16px}
+.flow-node .dn-name{display:block;font-size:14px;font-weight:750;line-height:1.4;word-break:break-word}
+.flow-node .dn-type{display:block;font-size:10px;color:#64748b;margin-top:2px}
+.flow-node .handle{position:absolute;width:22px;height:22px;border:0;background:transparent;border-radius:50%;z-index:5;cursor:crosshair}
+.flow-node .handle::after{content:"";position:absolute;width:10px;height:10px;left:6px;top:6px;border:2px solid #4f46e5;background:#fff;border-radius:50%;opacity:0;transform:scale(.65)}
+.flow-node .handle.active::after,.flow-node.connection-ready .handle::after,.flow-node.connection-target .handle::after{opacity:1;transform:scale(1)}
+.flow-node .handle-right{right:-11px;top:50%;margin-top:-11px}
+.flow-node .handle-left{left:-11px;top:50%;margin-top:-11px}
+.flow-node .handle-top{top:-11px;left:50%;margin-left:-11px}
+.flow-node .handle-bottom{bottom:-11px;left:50%;margin-left:-11px}
+
+.smart-guide-layer{position:absolute;left:0;top:0;width:1800px;height:1100px;z-index:1000;pointer-events:none!important}
+.align-guide{display:none;position:absolute;z-index:1;pointer-events:none!important;box-sizing:border-box}
+.align-guide.v{top:0;bottom:0;width:0;border-left:2px dashed #ff1493;box-shadow:0 0 4px rgba(255,20,147,.85)}
+.align-guide.h{left:0;right:0;height:0;border-top:2px dashed #ff1493;box-shadow:0 0 4px rgba(255,20,147,.85)}
+.equal-guide{display:none;position:absolute;z-index:2;pointer-events:none!important;box-sizing:border-box}
+.equal-guide.v{width:0;border-left:2px dashed #ff1493}
+.equal-guide.h{height:0;border-top:2px dashed #ff1493}
+.bend-point{fill:transparent;stroke:transparent;stroke-width:14;cursor:move;pointer-events:all}
+.bend-point.selected{fill:#4f46e5}
+.conn{stroke:#111;stroke-width:1.6;fill:none;pointer-events:stroke}
+.conn.selected{stroke:#4f46e5;stroke-width:3}
+.conn-arrow{fill:#111;stroke:none}
+.temp-line{stroke:#4f46e5;stroke-width:2;stroke-dasharray:7 5;fill:none;pointer-events:none}
+.zoom-readout{font-size:11px;color:#64748b;min-width:52px;text-align:center}
+
+.flow-node{cursor:grab;touch-action:none;pointer-events:auto}
+.flow-node:active{cursor:grabbing}
+.coord-layer,.coord-layer *{pointer-events:none!important}
+
+.app-title{cursor:text}
+.icon-btn{width:34px;height:34px;padding:0;font-size:18px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+body.dark{background:#0f172a;color:#e5e7eb}
+body.dark header{background:#111827;border-color:#334155}
+body.dark .canvas-panel,body.dark .right{background:#111827;color:#e5e7eb}
+body.dark .canvas-scroll{background:#0b1220}
+body.dark .diagram{background-image:none}
+body.dark .flow-node{background:#1e293b;border-color:#475569;color:#f8fafc}
+body.dark .flow-node .dn-type{color:#94a3b8}
+body.dark .canvas-toolbar,body.dark .canvas-status,body.dark .canvas-ui-bar{background:#111827;border-color:#334155;color:#94a3b8}
+body.dark .right{border-left-color:#334155}
+.dark .conn{stroke:#fff}.dark .conn.selected{stroke:#93c5fd}
+body.dark .left,body.dark .searchbar,body.dark .tree-wrap,body.dark .flow-overview{background:#111827;color:#e5e7eb;border-color:#334155}
+body.dark .node-card:hover{background:#1e293b;border-color:#475569}
+body.dark .node-row.selected>.node-card{outline-color:#818cf8;background:#1e293b}
+body.dark .node-type{background:#334155;color:#cbd5e1}
+body.dark .children{border-color:#475569}
+body.dark .children>.branch:before{border-color:#475569}
+body.dark button{background:#1f2937;color:#e5e7eb;border-color:#475569}
+body.dark button:hover{background:#334155}
+body.dark button.primary{background:#4f46e5;border-color:#4f46e5;color:#fff}
+body.dark input,body.dark textarea,body.dark select{background:#0f172a;color:#e5e7eb;border-color:#475569}
+body.dark .field label{color:#cbd5e1}
+body.dark .stat{background:#1e293b;color:#cbd5e1}
+body.dark .hint,body.dark .flow-help,body.dark .flow-title{color:#94a3b8}
+body.dark .flow-box{background:#1e293b;border-color:#475569;color:#e5e7eb}
+body.dark .flow-box.choice{background:#312e81;border-color:#6366f1;color:#e0e7ff}
+body.dark mark{background:#854d0e;color:#fef3c7}
+body.dark .toggle{color:#94a3b8}
+body.dark .toolbar{background:transparent}
+body.dark .coord-grid{background-image:radial-gradient(circle,rgba(148,163,184,.30) 1px,transparent 1.2px);background-size:10px 10px;background-position:0 0}.rename-btn{margin-left:6px;padding:4px 8px;font-size:12px;border-radius:6px}.logo{display:flex;align-items:center;gap:0}.drag-anchor-point{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;border:1px solid #2563eb;background:#fff;z-index:5;pointer-events:none;display:none}.drag-anchor-point.show{display:block}
+.apply-subbranch-mode,
+.apply-subbranch-mode .flow-node{
+ cursor:crosshair !important;
+}
+.apply-subbranch-mode .flow-node:hover{
+ outline:2px solid #2563eb !important;
+ outline-offset:3px;
+ cursor:copy !important;
+}
+.apply-subbranch-active{
+ background:#2563eb !important;
+ color:#fff !important;
+ border-color:#2563eb !important;
+}
+
+
+/* v1.0.7：側欄收合成垂直標籤；工具列改用上下三角 */
+.editor-layout.right-collapsed{grid-template-columns:minmax(700px,1fr) 38px}
+.editor-layout.right-collapsed .right{display:block;overflow:hidden;padding:0}
+.right-panel-head{display:flex;align-items:center;justify-content:flex-end;gap:7px;margin:-10px -8px 14px 0}
+.right-panel-title{display:none}
+.right-panel-toggle{white-space:nowrap}
+.editor-layout.right-collapsed .right-panel-head{
+ height:100%;margin:0;padding:10px 0 0;
+ flex-direction:column;justify-content:flex-start;align-items:center;gap:8px;
+}
+.editor-layout.right-collapsed .right-panel-title{
+ display:block;writing-mode:vertical-rl;text-orientation:upright;
+ font-size:16px;line-height:1.15;font-weight:700;letter-spacing:1px;white-space:nowrap;
+}
+.editor-layout.right-collapsed .right-panel-toggle{
+ width:30px;min-width:30px;padding:7px 4px;border-radius:999px;
+ writing-mode:horizontal-tb;text-orientation:mixed;line-height:1.15;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:0;white-space:normal;
+}
+.editor-layout.right-collapsed .right-panel-toggle span{
+ display:block;width:1em;height:1.15em;text-align:center;
+}
+.editor-layout.right-collapsed #editor{display:none}
+.canvas-toolbar.toolbar-collapsed{padding:6px 12px;min-height:38px}
+.canvas-toolbar.toolbar-collapsed > :not(#toolbarToggleBtn){display:none}
+#toolbarToggleBtn{order:-1;min-width:32px;width:32px;padding:5px 7px;font-size:0}
+#toolbarToggleBtn::before{content:"▲";font-size:15px;line-height:1}
+.canvas-toolbar.toolbar-collapsed #toolbarToggleBtn{display:inline-flex;align-items:center;justify-content:center}
+.canvas-toolbar.toolbar-collapsed #toolbarToggleBtn::before{content:"▼"}
+.canvas-ui-bar{
+ position:relative;z-index:100;width:100%;height:36px;min-height:36px;
+ display:flex;align-items:center;justify-content:space-between;
+ box-sizing:border-box;border-top:1px solid #e5e7eb;
+ background:#fff;
+}
+.canvas-ui-bar .canvas-status{
+ flex:1 1 auto;min-width:0;border-top:0;
+ height:36px;min-height:36px;box-sizing:border-box;
+ display:flex;align-items:center;padding:6px 12px;
+}
+.canvas-fullscreen-btn{
+ position:relative;right:auto;bottom:auto;z-index:101;
+ flex:0 0 auto;min-width:38px;height:30px;margin:0 7px;padding:0 10px;
+ display:inline-flex;align-items:center;justify-content:center;
+}
+.canvas-scroll:fullscreen{background:#fafafa}
+body.dark .canvas-scroll:fullscreen{background:#0b1220}
+body.app-fullscreen-fallback{overflow:hidden;width:100vw;height:100vh}
+html:has(body.app-fullscreen-fallback){width:100%;height:100%;overflow:hidden}
+body.app-fullscreen-fallback .editor-layout{position:fixed;inset:0;z-index:10000;height:100vh}
+body.app-fullscreen-fallback .canvas-panel{height:100vh}
+body.app-fullscreen-fallback .right{display:none}
+
+</style>
+
+<style id="saveSuccessModalStyle">
+#saveSuccessModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.28);z-index:9999}
+#saveSuccessModal.show{display:flex}
+#saveSuccessModal .save-success-box{min-width:280px;max-width:calc(100vw - 40px);padding:22px 26px;background:#fff;border:1px solid #d9d9d9;border-radius:12px;box-shadow:0 12px 35px rgba(0,0,0,.18);text-align:center}
+#saveSuccessModal .save-success-title{font-size:18px;font-weight:700;margin-bottom:8px;color:#111}
+.dark #saveSuccessModal .save-success-title{color:#111}
+
+#saveSuccessModal .save-success-text{font-size:14px;color:#555;margin-bottom:16px}
+#saveSuccessModal button{padding:7px 20px}
+</style>
+</head>
+<body class="dark">
+<header>
+  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.0.7</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
+  <span class="badge">v1.0.7</span>
+  <div class="toolbar">
+    <button id="newFileBtn" type="button" onclick="newProject()">新增檔案</button>
+    <button onclick="openProject()">開啟舊檔</button>
+    <button onclick="saveProject(false)">儲存檔案</button>
+    <button onclick="saveProject(true)">另存新檔</button>
+    <button class="history-icon-btn" onclick="undo()" title="返回（Ctrl+Z）" aria-label="返回（Ctrl+Z）">↶</button>
+    <button class="history-icon-btn" onclick="redo()" title="恢復（Ctrl+Y）" aria-label="恢復（Ctrl+Y）">↷</button>
+    <input id="fileInput" type="file" accept=".json" style="display:none" onchange="openProjectFromFile(event)">
+  </div>
+</header>
+
+<div class="editor-layout">
+  <section class="canvas-panel">
+    <div class="canvas-toolbar">
+      <button id="toolbarToggleBtn" type="button" aria-expanded="true">工具列收合</button>
+      <button id="addNodeBtn" class="primary" type="button">＋新增</button>
+      <button id="axisBtn" type="button">#定位軸線：關閉</button>
+      <button id="deleteConnBtn" type="button">del選取引線</button>
+      <button id="addBendBtn" type="button">┌新增轉彎點</button>
+      <button id="groupBtn" type="button">✓群組</button>
+      <button id="ungroupBtn" type="button">✗取消群組</button>
+      <button id="connectBtn" type="button">預覽連線</button>
+      <button id="themeBtn" class="icon-btn" type="button" title="切換深淺模式" aria-label="切換深淺模式">☀️</button>
+      <button id="expandAllBtn" type="button">all展開</button>
+      <button id="collapseAllBtn" type="button">all收合</button>
+      <span class="tip">拖曳流程圖移動　｜　Ctrl+左鍵多選　｜　Shift+左鍵父子範圍　｜　流程圖連點兩下展開／收合　｜　從 ● 拉線</span>
+        </div>
+    <div class="canvas-scroll" id="canvasScroll" tabindex="0" aria-label="流程圖畫布">
+      <div class="coord-layer" id="coordLayer" aria-hidden="true">
+          <div class="coord-grid"></div>
+          <div class="coord-axis-x" id="coordAxisX"></div>
+          <div class="coord-axis-y" id="coordAxisY"></div>
+          <div class="coord-label" id="coordLabelX">X=0</div>
+          <div class="coord-label" id="coordLabelY">Y=0</div>
+        </div>
+      <div class="diagram" id="diagram">
+        <div class="smart-guide-layer" id="smartGuideLayer">
+          <div class="align-guide v" id="guideV"></div>
+          <div class="align-guide h" id="guideH"></div>
+          <div class="equal-guide v" id="equalV1"></div>
+          <div class="equal-guide v" id="equalV2"></div>
+          <div class="equal-guide h" id="equalH1"></div>
+          <div class="equal-guide h" id="equalH2"></div>
+        </div>
+        <svg class="diagram-svg" id="diagramSvg" viewBox="0 0 1800 1100" aria-hidden="true"></svg>
+      </div>
+    </div>
+    <div class="canvas-ui-bar" id="canvasUiBar">
+      <div class="canvas-status" id="canvasStatus" aria-live="polite">節點位置、引線與資料會自動保存。</div>
+      <button id="fullscreenBtn" class="canvas-fullscreen-btn" type="button" title="全螢幕" aria-label="全螢幕">⛶ 全螢幕</button>
+    </div>
+  </section>
+  <aside class="right">
+    <div class="right-panel-head">
+      <span class="right-panel-title">流程圖設定</span>
+      <button id="rightPanelToggleBtn" class="right-panel-toggle" type="button" aria-expanded="true">右側欄收合</button>
+    </div>
+    <div id="editor"></div>
+  </aside>
+</div>
+
+
+<script>
+const safeStorage={
+ getItem(k){try{return window.localStorage.getItem(k)}catch(e){return null}},
+ setItem(k,v){try{window.localStorage.setItem(k,v)}catch(e){}},
+ removeItem(k){try{window.localStorage.removeItem(k)}catch(e){}}
+};
+const KEY="dungeon_tree_v044_editor";
+const seed={
+ id:"root",name:"標題流程",type:"流程起點",note:"",content:"",children:[]
+};
+
+
+
+const DEFAULT_POS={
+ root:{x:160,y:160}
+};
+
+const GRID_SIZE=10;
+// v0.5.41：全域定位原點為 0，定位端點固定為 0、10、20、30…。
+// 不再使用舊版的 5 單位半格偏移。
+const GRID_ORIGIN=0;
+function snapGrid(v){
+ const n=Number(v);
+ if(!Number.isFinite(n))return GRID_ORIGIN;
+ return GRID_ORIGIN+Math.round((n-GRID_ORIGIN)/GRID_SIZE)*GRID_SIZE;
+}
+function snap10(v){return snapGrid(v)}
+
+const hasStoredProject=!!safeStorage.getItem(KEY+"_data");
+let data=loadData();
+if(!hasStoredProject){
+ safeStorage.setItem(KEY+"_data",JSON.stringify(data));
+ safeStorage.setItem(KEY+"_filename","樹狀圖整理工具_v1.0.7.json");
+}
+let selectedId=data.id;
+let selectedIds=[data.id]; // 選取順序；第一個是 Shift 範圍選取的起點。
+let selectedConn=null;
+let selectedConnIds=new Set();
+let allCanvasSelected=false; // Ctrl+A 全選狀態；拖曳時保留全部流程圖與引線選取。
+let groups=[];
+let collapsedIds=loadCollapsedIds();
+collapsedIds.delete(data.id);
+let applyFlowchartMode=false;
+let previewConnections=false;
+let applyFlowchartSourceId=null;
+const undoStack=[],redoStack=[];
+let restoringHistory=false;
+const HISTORY_LIMIT=100;
+let toolbarCollapsed=false;
+let rightPanelCollapsed=false;
+let fallbackFullscreen=false;
+
+function updateLayoutControls(){
+ const layout=document.querySelector(".editor-layout");
+ const toolbar=document.querySelector(".canvas-toolbar");
+ const toolbarBtn=document.getElementById("toolbarToggleBtn");
+ const rightBtn=document.getElementById("rightPanelToggleBtn");
+ if(toolbar){
+  toolbar.classList.toggle("toolbar-collapsed",toolbarCollapsed);
+  if(toolbarBtn){
+   toolbarBtn.textContent=toolbarCollapsed?"工具列展開":"工具列收合";
+   toolbarBtn.setAttribute("aria-expanded",String(!toolbarCollapsed));
+  }
+ }
+ if(layout)layout.classList.toggle("right-collapsed",rightPanelCollapsed);
+ if(rightBtn){
+  const actionLabel=rightPanelCollapsed?"展開":"收合";
+  rightBtn.innerHTML=[...actionLabel].map(ch=>`<span>${ch}</span>`).join("");
+  rightBtn.setAttribute("aria-label",rightPanelCollapsed?"展開流程圖設定":"收合流程圖設定");
+  rightBtn.title=rightPanelCollapsed?"展開流程圖設定":"收合流程圖設定";
+  rightBtn.setAttribute("aria-expanded",String(!rightPanelCollapsed));
+ }
+}
+
+function updateFullscreenButton(){
+ const btn=document.getElementById("fullscreenBtn");
+ if(!btn)return;
+ const native=!!document.fullscreenElement;
+ const active=native||fallbackFullscreen;
+ btn.textContent=active?"⛶ 退出":"⛶ 全螢幕";
+ btn.title=active?"退出全螢幕":"全螢幕";
+ btn.setAttribute("aria-label",active?"退出全螢幕":"全螢幕");
+}
+
+async function toggleFullscreen(){
+ if(document.fullscreenElement){
+  try{await document.exitFullscreen()}catch(e){}
+  return;
+ }
+ if(fallbackFullscreen){
+  fallbackFullscreen=false;
+  document.body.classList.remove("app-fullscreen-fallback");
+  updateFullscreenButton();
+  return;
+ }
+ try{
+  if(document.documentElement.requestFullscreen){
+   await document.documentElement.requestFullscreen({navigationUI:"hide"});
+   return;
+  }
+ }catch(e){
+  console.warn("Fullscreen API unavailable",e);
+ }
+ fallbackFullscreen=true;
+ document.body.classList.add("app-fullscreen-fallback");
+ updateFullscreenButton();
+}
+
+function handleFullscreenKeydown(e){
+ if(e.key==="Escape"&&fallbackFullscreen){
+  fallbackFullscreen=false;
+  document.body.classList.remove("app-fullscreen-fallback");
+  updateFullscreenButton();
+ }
+}
+document.addEventListener("keydown",handleFullscreenKeydown);
+document.addEventListener("fullscreenchange",updateFullscreenButton);
+
+function historySnapshot(){
+ return JSON.stringify({
+  data:data,
+  positions:positions,
+  connections:connections,
+  groups:groups,
+  collapsedIds:[...collapsedIds],
+  currentFileName:currentFileName,
+  title:document.getElementById("appTitle")?.textContent||""
+ });
+}
+function restoreSnapshot(raw){
+ const s=JSON.parse(raw);
+ data=s.data;
+ positions=s.positions||{};
+ connections=normalizeConnections(s.connections||[]);
+ groups=normalizeGroups(s.groups||[],new Set(allNodes(data).map(n=>n.id)));
+ collapsedIds=new Set(Array.isArray(s.collapsedIds)?s.collapsedIds.filter(id=>nodeById(id)):[]);
+ selectedIds=selectedIds.filter(id=>nodeById(id));
+ if(!selectedIds.length)selectedIds=[data.id];
+ selectedId=selectedIds[0]||data.id;
+ selectedConnIds=new Set();
+ allCanvasSelected=false;
+ currentFileName=s.currentFileName||currentFileName;
+ const title=document.getElementById("appTitle");
+ if(title)title.textContent=s.title||currentFileName;
+ saveData();savePositions();saveConnections();saveGroups();saveCollapsedIds();
+ render();
+}
+function pushHistory(){
+ if(restoringHistory)return;
+ undoStack.push(historySnapshot());
+ if(undoStack.length>HISTORY_LIMIT)undoStack.shift();
+ redoStack.length=0;
+}
+function undo(){
+ if(!undoStack.length){setStatus("沒有可以返回的操作。");return}
+ restoringHistory=true;
+ redoStack.push(historySnapshot());
+ restoreSnapshot(undoStack.pop());
+ restoringHistory=false;
+ setStatus("已返回上一個操作。");
+}
+function redo(){
+ if(!redoStack.length){setStatus("沒有可以恢復的操作。");return}
+ restoringHistory=true;
+ undoStack.push(historySnapshot());
+ restoreSnapshot(redoStack.pop());
+ restoringHistory=false;
+ setStatus("已恢復下一個操作。");
+}
+function handleHistoryKeydown(e){
+ if((e.ctrlKey||e.metaKey)&&!e.altKey){
+  const k=e.key.toLowerCase();
+  if(k==="z"){e.preventDefault();undo();return}
+  if(k==="y"){e.preventDefault();redo();return}
+ }
+}
+document.addEventListener("keydown",handleHistoryKeydown);
+
+function handleCanvasSelectionKeydown(e){
+ if(!(e.ctrlKey||e.metaKey)||e.altKey||e.key.toLowerCase()!=="a")return;
+ const canvas=document.getElementById("canvasScroll");
+ const active=document.activeElement;
+ const inCanvas=active===canvas||!!active?.closest?.("#canvasScroll");
+ if(!inCanvas)return;
+ e.preventDefault();
+ e.stopPropagation();
+ const ids=allNodes().map(n=>n.id);
+ selectedIds=ids.slice();
+ selectedId=ids.includes(selectedId)?selectedId:(ids[0]||data.id);
+ selectedConnIds=new Set(connections.map(c=>c.id));
+ selectedConn=null;
+ allCanvasSelected=true;
+ render();
+ setStatus("已全選 "+selectedIds.length+" 個流程圖與 "+selectedConnIds.size+" 條引線；拖曳任一流程圖會全部一起移動。可在右側調整目前選取基準的座標。" );
+}
+document.addEventListener("keydown",handleCanvasSelectionKeydown);
+function handleDeleteKeydown(e){
+ if(e.key!=="Delete"||e.ctrlKey||e.metaKey||e.altKey)return;
+ const active=document.activeElement;
+ const tag=active?.tagName?.toLowerCase();
+ if(tag==="input"||tag==="textarea"||tag==="select"||active?.isContentEditable)return;
+ const canvas=document.getElementById("canvasScroll");
+ const inCanvas=active===canvas||!!active?.closest?.("#canvasScroll");
+ // Delete is global for canvas selections; if focus is elsewhere, only act when a real selection exists.
+ const hasSelection=selectedIds.some(id=>id!==data.id)||selectedConnIds.size>0||!!selectedConn;
+ if(!inCanvas&&!hasSelection)return;
+ if(!hasSelection){setStatus("請選流程圖或引線");return}
+ e.preventDefault();e.stopPropagation();
+ deleteSelectedItems();
+}
+document.addEventListener("keydown",handleDeleteKeydown);
+
+
+let dragging=null; // 拖曳流程圖：多選成員保持整批移動；不修改連線端點，只同步更新相關 bends。
+let positions=loadPositions();
+let connections=loadConnections();
+// 開啟專案時保留 JSON 內已保存的 children 階層。
+// 只有實際新增／改接／刪除引線時才同步階層，避免單純點擊或重新 render
+// 因舊引線資料重建樹狀結構，導致上游父分支突然消失。
+collapsedIds=new Set([...collapsedIds].filter(id=>{const n=nodeById(id);return id!==data.id&&!!n&&(n.children||[]).length}));
+saveCollapsedIds();
+// 舊版可能保存 5、15、25… 座標；載入時已統一吸附到新的 0、10、20… 網格。
+savePositions();
+const savedGroups=safeStorage.getItem(KEY+"_groups");
+try{groups=normalizeGroups(JSON.parse(savedGroups||"[]"),new Set(allNodes(data).map(n=>n.id)))}catch(e){groups=[]}
+const savedAxis=safeStorage.getItem(KEY+"_axis");
+let axisVisible=savedAxis===null ? true : savedAxis==="1";
+let zoom=Number(safeStorage.getItem(KEY+"_zoom")||"1");
+if(!Number.isFinite(zoom)||zoom<0.4||zoom>2.5)zoom=1;
+let panX=0,panY=0;
+let currentFileHandle=null;
+let connectionDragActive=false;
+let currentFileName=(safeStorage.getItem(KEY+"_filename")||"樹狀圖整理工具_v1.0.7.json");
+
+function loadData(){try{const x=JSON.parse(safeStorage.getItem(KEY+"_data"));if(x&&x.children)return x}catch(e){}return JSON.parse(JSON.stringify(seed))}
+function saveData(){safeStorage.setItem(KEY+"_data",JSON.stringify(data))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,9)}
+function findNode(id,n=data,p=null){if(n.id===id)return{node:n,parent:p};for(const c of n.children||[]){const r=findNode(id,c,n);if(r)return r}return null}
+function nodeById(id){const r=findNode(id);return r?r.node:null}
+function allNodes(n=data,a=[]){a.push(n);(n.children||[]).forEach(c=>allNodes(c,a));return a}
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+
+function loadCollapsedIds(){
+ try{
+  const raw=JSON.parse(safeStorage.getItem(KEY+"_collapsed")||"[]");
+  return new Set(Array.isArray(raw)?raw.filter(id=>typeof id==="string"):[]);
+ }catch(e){return new Set()}
+}
+function saveCollapsedIds(){
+ collapsedIds.delete(data.id);
+ safeStorage.setItem(KEY+"_collapsed",JSON.stringify([...collapsedIds]));
+}
+function descendantsOf(id){
+ const out=[];const root=nodeById(id);if(!root)return out;
+ function walk(n){(n.children||[]).forEach(c=>{out.push(c.id);walk(c)})}
+ walk(root);return out;
+}
+function buildConnectionParentSet(){
+ const incoming=new Set();
+ for(const c of connections||[]){
+  if(c&&c.from&&c.to&&c.from!==c.to&&nodeById(c.from)&&nodeById(c.to))incoming.add(c.to);
+ }
+ return incoming;
+}
+function independentRootIds(){
+ const incoming=buildConnectionParentSet();
+ return allNodes().filter(n=>n.id!==data.id&&!incoming.has(n.id)).map(n=>n.id);
+}
+function isNodeHidden(id){
+ if(id===data.id)return false;
+ const parent=buildParentMap();let cur=parent.get(id)||null;
+ while(cur){if(collapsedIds.has(cur))return true;cur=parent.get(cur)||null}
+ return false;
+}
+function expandOneLevel(id){
+ const n=nodeById(id),children=n?.children||[];
+ if(!n||!children.length)return false;
+ pushHistory();
+ // 只展開目前這一層；有下一層的子流程本身維持收合，
+ // 因此只會出現直接子流程，不會一次把孫分支全部攤開。
+ collapsedIds.delete(id);
+ children.forEach(c=>{
+  if((c.children||[]).length)collapsedIds.add(c.id);
+ });
+ saveCollapsedIds();render();
+ setStatus('已展開「'+n.name+'」的下一階子分支。');
+ return true;
+}
+function toggleSubtree(id){
+ if(id===data.id){setStatus("「標題流程」是目前專案根流程，不收合其他獨立父流程；請點實際父流程圖展開／收合。 ");return}
+ const n=nodeById(id),children=n?.children||[];
+ if(!n||!children.length){setStatus("「"+(n?.name||"流程圖")+"」沒有子孫分支可展開／收合。");return}
+ pushHistory();
+ const shouldCollapse=!collapsedIds.has(id);
+ if(shouldCollapse)collapsedIds.add(id);
+ else [id,...descendantsOf(id)].forEach(x=>collapsedIds.delete(x));
+ saveCollapsedIds();render();
+ setStatus((shouldCollapse?"已收合":"已展開")+"「"+n.name+"」及其所有子孫分支。");
+}
+function expandAll(){
+ if(!collapsedIds.size){setStatus("目前已經全部展開。");return}
+ pushHistory();
+ collapsedIds.clear();saveCollapsedIds();render();
+ setStatus("已全部展開所有獨立父流程及其子孫分支。");
+}
+function collapseAll(){
+ const next=new Set(allNodes().filter(n=>n.id!==data.id&&(n.children||[]).length).map(n=>n.id));
+ const same=next.size===collapsedIds.size&&[...next].every(id=>collapsedIds.has(id));
+ if(same){setStatus("目前已經全部收合。");return}
+ pushHistory();
+ collapsedIds=next;
+ saveCollapsedIds();render();
+ setStatus("已全部收合；保留 "+independentRootIds().length+" 個獨立父流程顯示。");
+}
+function loadPositions(){
+ try{
+  const x=JSON.parse(safeStorage.getItem(KEY+"_pos"));
+  if(x&&typeof x==="object"&&!Array.isArray(x)){
+   const out={};
+   for(const [id,p] of Object.entries(x)){
+    if(!p||typeof p!=="object")continue;
+    const px=Number(p.x),py=Number(p.y);
+    if(Number.isFinite(px)&&Number.isFinite(py)){
+     out[id]={x:snap10(px),y:snap10(py)};
+    }
+   }
+   if(Object.keys(out).length)return out;
+  }
+ }catch(e){}
+ const out=JSON.parse(JSON.stringify(DEFAULT_POS));
+ Object.keys(out).forEach(id=>{
+  out[id].x=snap10(out[id].x);
+  out[id].y=snap10(out[id].y);
+ });
+ return out;
+}
+function savePositions(){safeStorage.setItem(KEY+"_pos",JSON.stringify(positions))}
+function ensurePosition(nodeOrId){
+ const id=typeof nodeOrId==="string" ? nodeOrId : nodeOrId?.id;
+ if(!id)throw new Error("無效的節點 ID");
+ if(!positions[id]){
+  const count=Object.keys(positions).length;
+  positions[id]={x:snap10(150+(count%7)*190),y:snap10(80+Math.floor(count/7)*100)};
+ }
+ return positions[id];
+}
+function inferSide(from,to){
+ const a=ensurePosition(from),b=ensurePosition(to);
+ const ac=centerOf(from),bc=centerOf(to);
+ if(!ac||!bc){
+   if(Math.abs(b.x-a.x)>=Math.abs(b.y-a.y))return b.x>=a.x?"right":"left";
+   return b.y>=a.y?"bottom":"top";
+ }
+ const ax=a.x+ac.width/2, ay=a.y+ac.height/2;
+ const bx=b.x+bc.width/2, by=b.y+bc.height/2;
+ if(Math.abs(bx-ax)>=Math.abs(by-ay))return bx>=ax?"right":"left";
+ return by>=ay?"bottom":"top";
+}
+function oppositeSide(side){
+ return side==="right"?"left":side==="left"?"right":side==="top"?"bottom":"top";
+}
+function normalizeConnections(list){
+ return (Array.isArray(list)?list:[]).filter(c=>c&&c.from&&c.to&&c.from!==c.to).map(c=>({
+   id:c.id||uid(),from:c.from,to:c.to,
+   fromSide:c.fromSide||inferSide(c.from,c.to),
+   toSide:c.toSide||oppositeSide(c.fromSide||inferSide(c.from,c.to)),
+   bends:Array.isArray(c.bends)?c.bends.map(b=>({x:snap10(Number(b.x)||0),y:snap10(Number(b.y)||0)})):[]
+ }));
+}
+function loadConnections(){
+ try{
+  const x=JSON.parse(safeStorage.getItem(KEY+"_conn"));
+  if(Array.isArray(x))return normalizeConnections(x);
+ }catch(e){}
+ return normalizeConnections([
+  {id:"c1",from:"root",to:"d1"},{id:"c2",from:"d1",to:"d2"},{id:"c3",from:"d2",to:"d3"},
+  {id:"c4",from:"d3",to:"d4"},{id:"c5",from:"d4",to:"d5"},{id:"c6",from:"d5",to:"d6"},
+  {id:"c7",from:"d5",to:"field"},{id:"c8",from:"d5",to:"newarea"},
+  {id:"c9",from:"field",to:"fire"},{id:"c10",from:"field",to:"wind"},{id:"c11",from:"field",to:"dark"},{id:"c12",from:"field",to:"water"},
+  {id:"c13",from:"newarea",to:"ch1"},{id:"c14",from:"newarea",to:"ch2"},{id:"c15",from:"newarea",to:"ch3"},
+  {id:"c16",from:"ch1",to:"dungeon1"},{id:"c17",from:"ch2",to:"dungeon2"},{id:"c18",from:"ch3",to:"dungeon3"},
+  {id:"c19",from:"dungeon1",to:"prison1"},{id:"c20",from:"dungeon2",to:"prison2"},{id:"c21",from:"dungeon3",to:"prison3"},
+  {id:"c22",from:"prison1",to:"r1_1"},{id:"c23",from:"prison1",to:"r1_2"},{id:"c24",from:"prison1",to:"boss1"},
+  {id:"c25",from:"prison2",to:"r2_1"},{id:"c26",from:"prison2",to:"r2_2"},{id:"c27",from:"prison2",to:"boss2"},
+  {id:"c28",from:"prison3",to:"r3_1"},{id:"c29",from:"prison3",to:"r3_2"},{id:"c30",from:"prison3",to:"boss3"}
+ ]);
+}
+function saveConnections(){safeStorage.setItem(KEY+"_conn",JSON.stringify(connections))}
+function saveGroups(){safeStorage.setItem(KEY+"_groups",JSON.stringify(groups))}
+function normalizeGroups(raw,validIds){
+ if(!Array.isArray(raw))return [];
+ const out=[];
+ for(const g of raw){
+  if(!g||typeof g!=="object")continue;
+  const ids=[...new Set(Array.isArray(g.ids)?g.ids.filter(id=>validIds.has(id)):[])];
+  if(ids.length<2)continue;
+  out.push({id:typeof g.id==="string"&&g.id?g.id:uid(),ids});
+ }
+ return out;
+}
+function groupIdsForNode(id){
+ const out=new Set();
+ for(const g of groups){if(g.ids.includes(id))g.ids.forEach(x=>out.add(x))}
+ return out;
+}
+
+
+function applyZoom(next,cx,cy){
+ const old=zoom;
+ zoom=Math.max(.4,Math.min(2.5,next));
+ // Keep the same diagram point under the mouse while zooming.
+ if(cx!=null&&cy!=null){
+   const rect=document.getElementById("canvasScroll").getBoundingClientRect();
+   const oldX=(cx-rect.left-panX)/old;
+   const oldY=(cy-rect.top-panY)/old;
+   panX=(cx-rect.left)-oldX*zoom;
+   panY=(cy-rect.top)-oldY*zoom;
+ }
+ safeStorage.setItem(KEY+"_zoom",String(zoom));
+ renderCanvas();
+ setStatus("縮放："+Math.round(zoom*100)+"%");
+}
+function screenToDiagram(e){
+ const rect=document.getElementById("canvasScroll").getBoundingClientRect();
+ return {x:(e.clientX-rect.left-panX)/zoom,y:(e.clientY-rect.top-panY)/zoom};
+}
+
+
+function render(){
+ renderCanvas();renderEditor();updateApplySubbranchButton()}
+function updateViewportAxis(){
+ const scroll=document.getElementById("canvasScroll"),layer=document.getElementById("coordLayer");
+ const ax=document.getElementById("coordAxisX"),ay=document.getElementById("coordAxisY");
+ if(!scroll||!layer||!ax||!ay)return;
+ layer.style.width=scroll.clientWidth+"px";layer.style.height=scroll.clientHeight+"px";
+ const step=GRID_SIZE*zoom;
+ const ox=((panX%step)+step)%step,oy=((panY%step)+step)%step;
+ const grid=layer.querySelector(".coord-grid");
+ if(grid){grid.style.backgroundSize=step+"px "+step+"px";grid.style.backgroundPosition=ox+"px "+oy+"px";}
+ ax.style.top=panY+"px";ay.style.left=panX+"px";
+ const lx=document.getElementById("coordLabelX"),ly=document.getElementById("coordLabelY");
+ if(lx){lx.style.left=(panX+4)+"px";lx.style.top=Math.max(2,panY+4)+"px";}
+ if(ly){ly.style.left=Math.max(2,panX+4)+"px";ly.style.top=(panY+4)+"px";}
+}
+
+function renderCanvas(){
+ const diagram=document.getElementById("diagram");
+ diagram.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;
+ diagram.style.transformOrigin="0 0";diagram.style.willChange="transform";
+ diagram.style.width=(1800*zoom)+"px";
+ diagram.style.height=(1100*zoom)+"px";
+ const layer=document.getElementById("coordLayer");
+
+ if(layer){layer.classList.toggle("on",axisVisible);updateViewportAxis();}
+ const axisBtn=document.getElementById("axisBtn");
+ if(axisBtn)axisBtn.textContent="#定位軸線："+(axisVisible?"開啟":"關閉");
+ const svg=document.getElementById("diagramSvg");
+ diagram.querySelectorAll(".flow-node").forEach(e=>e.remove());
+ svg.innerHTML="";
+ allNodes().forEach(n=>{
+  if(isNodeHidden(n.id))return;
+  const p=ensurePosition(n.id);
+  const el=document.createElement("div");
+  el.className="flow-node"+(selectedIds.includes(n.id)?" selected":"")+(groupIdsForNode(n.id).size?" grouped":"");
+  el.dataset.id=n.id;el.style.left=p.x+"px";el.style.top=p.y+"px";
+  el.innerHTML=
+    '<span class="dn-name">'+esc(n.name)+'</span>'+
+    '<span class="dn-type">'+esc(n.type||"一般")+'</span>'+
+    '<span class="handle handle-top" data-side="top" title="從上方拉出引線"></span>'+
+    '<span class="handle handle-right" data-side="right" title="從右方拉出引線"></span>'+
+    '<span class="handle handle-bottom" data-side="bottom" title="從下方拉出引線"></span>'+
+    '<span class="handle handle-left" data-side="left" title="從左方拉出引線"></span>';
+  el.addEventListener("dblclick",e=>{
+   if(e.target.closest?.(".handle,.input-handle"))return;
+   if(suppressNextNodeDblClick){
+    suppressNextNodeDblClick=false;
+    e.preventDefault();e.stopPropagation();
+    return;
+   }
+   e.preventDefault();e.stopPropagation();toggleSubtree(n.id);
+  });
+  el.addEventListener("pointerdown",e=>{
+   if(applyFlowchartMode){applyFlowchartAtEvent(e);return;}
+   onNodeDown(e);
+  });
+  diagram.appendChild(el);
+ });
+ drawConnections();
+}
+// 套用子分支：目標是整個流程圖方框。
+// 實際套用在流程圖自己的 pointerdown 執行，避免 click 事件被拖曳/重繪吃掉。
+function applyFlowchartAtEvent(e){
+ if(!applyFlowchartMode||applyFlowchartBusy)return true;
+ // 套用模式下，點擊整個流程圖方框都算選取來源；四個隱形節點、轉彎點、SVG 引線則排除。
+ if(e.target.closest?.(".handle,.input-handle,.bend-point,.conn"))return true;
+ const nodeEl=(e.currentTarget?.classList?.contains("flow-node")
+   ? e.currentTarget
+   : e.target.closest?.(".flow-node"));
+ if(!nodeEl)return true;
+ const destinationId=applyFlowchartSourceId;
+ const templateId=nodeEl.dataset.id;
+ e.preventDefault();
+ e.stopPropagation();
+ e.stopImmediatePropagation?.();
+ if(!destinationId){
+  setStatus("套用目標遺失，請重新按「套用子分支」。");
+  cancelApplyFlowchart();
+  return false;
+ }
+ if(destinationId===templateId){
+  setStatus("這是目前的套用目標；請點另一個流程圖作為子分支來源。");
+  return false;
+ }
+ // 注意：這裡是「點到的流程圖提供子分支」，而不是把子分支套到點到的流程圖。
+ const ok=applyFlowchartToTarget(destinationId,templateId);
+ if(ok)cancelApplyFlowchart();
+ return false;
+}
+// 套用模式下：先選接收方 → 按「套用子分支」→ 再點來源流程圖。
+// 點來源流程圖的任何方框區域都會命中，不需要點標題或特定文字。
+
+function centerOf(id){
+ const el=getNodeElementById(id);if(!el)return null;
+ const p=positions[id];
+ return {left:p.x,top:p.y,width:el.offsetWidth,height:el.offsetHeight};
+}
+function anchorPoint(id,side){
+ const c=centerOf(id);if(!c)return null;
+ if(side==="top")return{x:c.left+c.width/2,y:c.top};
+ if(side==="bottom")return{x:c.left+c.width/2,y:c.top+c.height};
+ if(side==="left")return{x:c.left,y:c.top+c.height/2};
+ return{x:c.left+c.width,y:c.top+c.height/2};
+}
+function connectionPath(conn){
+ const a=anchorPoint(conn.from,conn.fromSide||"right");
+ const b=anchorPoint(conn.to,conn.toSide||"left");
+ if(!a||!b)return null;
+ const pts=[a,...(conn.bends||[]),b];
+ return pts.map((q,i)=>(i?"L ":"M ")+q.x+" "+q.y).join(" ");
+}
+function drawConnections(){
+ const svg=document.getElementById("diagramSvg");
+ // SVG contains only connections and bend handles. Clear it before every redraw
+ // so moving a bend point cannot leave hundreds of old paths behind.
+ svg.replaceChildren();
+ connections.forEach(c=>{
+  if(isNodeHidden(c.from)||isNodeHidden(c.to))return;
+  const d=connectionPath(c);if(!d)return;
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",d);
+  p.setAttribute("class","conn"+(selectedConnIds.has(c.id)||selectedConn===c.id?" selected":"")+(previewConnections?" previewing":""));
+  p.dataset.id=c.id;
+  p.addEventListener("click",e=>{
+   e.stopPropagation();
+   selectedConn=c.id;
+   setStatus("已選取引線："+(nodeById(c.from)?.name||c.from)+" → "+(nodeById(c.to)?.name||c.to));
+   drawConnections();
+  });
+  svg.appendChild(p);
+  (c.bends||[]).forEach((b,i)=>{
+   const bp=document.createElementNS("http://www.w3.org/2000/svg","circle");
+   bp.setAttribute("cx",b.x);bp.setAttribute("cy",b.y);bp.setAttribute("r",5);
+   bp.setAttribute("class","bend-point"+(selectedConnIds.has(c.id)||selectedConn===c.id?" selected":""));
+   bp.dataset.conn=c.id;bp.dataset.index=i;
+   bp.addEventListener("pointerdown",startBendDrag);
+   svg.appendChild(bp);
+  });
+ });
+}
+
+
+function getNodeElementById(id){
+ return Array.from(document.querySelectorAll(".flow-node")).find(el=>el.dataset.id===id)||null;
+}
+function showAlignmentGuides(id,x,y){
+ const gv=document.getElementById("guideV"),gh=document.getElementById("guideH");
+ const ev1=document.getElementById("equalV1"),ev2=document.getElementById("equalV2");
+ const eh1=document.getElementById("equalH1"),eh2=document.getElementById("equalH2");
+ if(!gv||!gh||!axisVisible){hideAlignmentGuides();return{x,y}}
+ const movingEl=id.startsWith("bend:")?null:getNodeElementById(id);
+ if(!movingEl){hideAlignmentGuides();return{x,y}}
+ const mw=movingEl.offsetWidth,mh=movingEl.offsetHeight;
+ const mx=[x,x+mw/2,x+mw],my=[y,y+mh/2,y+mh];
+ let bestV=null,bestH=null;
+ for(const n of allNodes()){
+  if(n.id===id)continue;
+  const el=getNodeElementById(n.id);if(!el)continue;
+  const p=ensurePosition(n),w=el.offsetWidth,h=el.offsetHeight;
+  const tx=[p.x,p.x+w/2,p.x+w],ty=[p.y,p.y+h/2,p.y+h];
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++){
+   const dv=Math.abs(mx[i]-tx[j]),dh=Math.abs(my[i]-ty[j]);
+   if(!bestV||dv<bestV.d)bestV={d:dv,line:tx[j],snap:tx[j]-(i===0?0:i===1?mw/2:mw)};
+   if(!bestH||dh<bestH.d)bestH={d:dh,line:ty[j],snap:ty[j]-(i===0?0:i===1?mh/2:mh)};
+  }
+ }
+ const guideThreshold=140,snapThreshold=6;
+ gv.style.display=bestV&&bestV.d<=guideThreshold?"block":"none";
+ gh.style.display=bestH&&bestH.d<=guideThreshold?"block":"none";
+ if(gv.style.display==="block")gv.style.left=bestV.line+"px";
+ if(gh.style.display==="block")gh.style.top=bestH.line+"px";
+ [ev1,ev2,eh1,eh2].forEach(e=>{if(e)e.style.display="none"});
+
+ const objs=allNodes().filter(n=>n.id!==id).map(n=>{
+  const p=ensurePosition(n),el=getNodeElementById(n.id);if(!el)return null;
+  return {cx:p.x+el.offsetWidth/2,cy:p.y+el.offsetHeight/2};
+ }).filter(Boolean);
+ const cx=x+mw/2,cy=y+mh/2,axisTol=45,eqTol=16;
+ const row=objs.filter(o=>Math.abs(o.cy-cy)<=axisTol).sort((u,v)=>u.cx-v.cx);
+ let left=null,right=null;
+ for(const o of row){if(o.cx<cx)left=o;else if(o.cx>cx){right=o;break}}
+ if(left&&right&&Math.abs((cx-left.cx)-(right.cx-cx))<=eqTol){
+  eh1.style.left=left.cx+"px";eh1.style.width=(cx-left.cx)+"px";eh1.style.top=cy+"px";eh1.style.display="block";
+  eh2.style.left=cx+"px";eh2.style.width=(right.cx-cx)+"px";eh2.style.top=cy+"px";eh2.style.display="block";
+ }
+ const col=objs.filter(o=>Math.abs(o.cx-cx)<=axisTol).sort((u,v)=>u.cy-v.cy);
+ let top=null,bottom=null;
+ for(const o of col){if(o.cy<cy)top=o;else if(o.cy>cy){bottom=o;break}}
+ if(top&&bottom&&Math.abs((cy-top.cy)-(bottom.cy-cy))<=eqTol){
+  ev1.style.left=cx+"px";ev1.style.top=top.cy+"px";ev1.style.height=(cy-top.cy)+"px";ev1.style.display="block";
+  ev2.style.left=cx+"px";ev2.style.top=cy+"px";ev2.style.height=(bottom.cy-cy)+"px";ev2.style.display="block";
+ }
+ return {
+  x:(bestV&&bestV.d<=snapThreshold)?bestV.snap:x,
+  y:(bestH&&bestH.d<=snapThreshold)?bestH.snap:y
+ };
+}
+
+function hideAlignmentGuides(){
+ ["guideV","guideH","equalV1","equalV2","equalH1","equalH2"].forEach(id=>{
+   const e=document.getElementById(id);if(e)e.style.display="none";
+ });
+}
+
+function showNodeGridAnchor(id,x,y){
+ const d=document.getElementById("diagram");
+ let m=document.getElementById("dragAnchorPoint");
+ if(!m){m=document.createElement("div");m.id="dragAnchorPoint";m.className="drag-anchor-point";d.appendChild(m)}
+ m.style.left=x+"px";m.style.top=y+"px";m.classList.add("show");
+}
+function hideNodeGridAnchor(){
+ document.getElementById("dragAnchorPoint")?.classList.remove("show");
+}
+
+function inferSidesByGeometry(aId,bId){
+ const a=getNodeElementById(aId),b=getNodeElementById(bId);
+ const pa=positions[aId],pb=positions[bId];
+ if(!a||!b||!pa||!pb)return {fromSide:"right",toSide:"left"};
+ const aw=a.offsetWidth||110,ah=a.offsetHeight||50,bw=b.offsetWidth||110,bh=b.offsetHeight||50;
+ const acx=pa.x+aw/2,acy=pa.y+ah/2,bcx=pb.x+bw/2,bcy=pb.y+bh/2;
+ const dx=bcx-acx,dy=bcy-acy;
+ if(Math.abs(dx)>=Math.abs(dy)){
+  return dx>=0?{fromSide:"right",toSide:"left"}:{fromSide:"left",toSide:"right"};
+ }
+ return dy>=0?{fromSide:"bottom",toSide:"top"}:{fromSide:"top",toSide:"bottom"};
+}
+
+function selectFlowchartByModifier(id,e,fromPointer=false){
+ const ctrl=e.ctrlKey||e.metaKey;
+ const shift=e.shiftKey;
+ allCanvasSelected=false;
+ if(shift){
+  const anchor=selectedIds[0]||selectedId;
+  const path=findTreePath(anchor,id);
+  if(path&&path.length){
+   selectedIds=[...new Set([...selectedIds,...path])];
+   selectedId=id;
+   selectedConnIds=new Set(connections.filter(c=>path.includes(c.from)&&path.includes(c.to)).map(c=>c.id));
+   selectedConn=selectedConnIds.size?connections.find(c=>selectedConnIds.has(c.id))?.id:null;
+   if(!fromPointer)render();
+   setStatus("已選取父子路徑："+path.length+" 個流程圖、"+selectedConnIds.size+" 條引線。" );
+  }else{setStatus("這兩個流程圖之間沒有父子關係路徑。");}
+  return;
+ }
+ if(ctrl){
+  if(selectedIds.includes(id))selectedIds=selectedIds.filter(x=>x!==id);
+  else selectedIds=[...selectedIds,id];
+  selectedId=id;
+ }else{
+  selectedIds=[id];selectedId=id;
+ }
+ selectedConn=null;selectedConnIds.clear();
+ if(!fromPointer)render();
+}
+function buildParentMap(){
+ const parent=new Map();
+ function walk(n,p=null){for(const c of (n.children||[])){parent.set(c.id,n.id);walk(c,n.id)}}
+ walk(data);return parent;
+}
+function findTreePath(a,b){
+ if(!nodeById(a)||!nodeById(b))return null;
+ if(a===b)return[a];
+ const parent=buildParentMap();
+ const up=new Map();let cur=a;
+ while(cur){up.set(cur,true);cur=parent.get(cur)||null}
+ const chainB=[];cur=b;
+ while(cur&&!up.has(cur)){chainB.push(cur);cur=parent.get(cur)||null}
+ if(!cur)return null;
+ const chainA=[];let x=a;while(x!==cur){chainA.push(x);x=parent.get(x)}
+ chainA.push(cur);
+ return chainA.concat(chainB.reverse());
+}
+function groupSelected(){
+ const ids=[...new Set(selectedIds)];
+ if(ids.length<2){setStatus("請先選取至少兩個流程圖再群組。");return}
+ pushHistory();
+ const already=new Set();
+ for(const g of groups){if(g.ids.some(id=>ids.includes(id)))g.ids.forEach(id=>already.add(id));}
+ const merged=[...new Set([...ids,...already])];
+ groups=groups.filter(g=>!g.ids.some(id=>merged.includes(id)));
+ groups.push({id:uid(),ids:merged});
+ saveGroups();render();setStatus("已將 "+merged.length+" 個流程圖群組。拖曳其中任一個，整組會保持相對座標移動。");
+}
+function ungroupSelected(){
+ const ids=new Set(selectedIds);
+ const target=groups.find(g=>g.ids.some(id=>ids.has(id)));
+ if(!target){setStatus("目前選取的流程圖沒有群組。請先選取群組內任一個流程圖。");return}
+ pushHistory();
+ const removedCount=target.ids.length;
+ groups=groups.filter(g=>g.id!==target.id);
+ saveGroups();
+ render();
+ setStatus("已取消群組；保留 "+removedCount+" 個流程圖的位置與引線。");
+}
+
+
+let lastNodeTap=null;
+let nodeSingleClickTimer=null;
+let suppressNextNodeDblClick=false;
+
+function onNodeDown(e){
+ if(e.button!==0)return;
+ const node=e.currentTarget,id=node.dataset.id;
+ if(applyFlowchartMode){
+  // Do not start dragging in apply mode.
+  // IMPORTANT: do not preventDefault() here; the native mouse click must reach
+  // the delegated apply handler below.
+  return;
+ }
+
+ document.getElementById("canvasScroll")?.focus({preventScroll:true});
+ if(e.target.classList.contains("handle")){
+  e.stopPropagation();
+  startConnection(e,id,e.target.dataset.side||"right");
+  return;
+ }
+ if(e.target.classList.contains("input-handle"))return;
+ e.stopPropagation();
+ // 已經是 Ctrl 多選／Shift 父子範圍選取中的成員時，
+ // 後續「不帶 Ctrl/Shift」的拖曳起手也必須保留整批選取；
+ // 否則普通 pointerdown 會先把 selectedIds 縮成單一流程圖，導致看起來多選了卻只能拖一個。
+ // Ctrl+A 全選同樣保留整批選取。
+ const keepBatchSelection=allCanvasSelected || (selectedIds.length>1 && selectedIds.includes(id));
+ if(!keepBatchSelection){
+  selectFlowchartByModifier(id,e,true);
+ }else{
+  selectedId=id;
+ }
+ selectedConn=null;
+ if(!allCanvasSelected)selectedConnIds.clear();
+ const p=ensurePosition(id);
+ // 只要目前有多選（Ctrl / Shift），拖曳其中任一已選流程圖就一起移動。
+ // 若選取的流程圖屬於群組，仍把該群組成員納入；單選則維持原本的群組拖曳。
+ const movingIds=new Set();
+ if(allCanvasSelected){
+  selectedIds.forEach(x=>movingIds.add(x));
+ }else if(selectedIds.length>1){
+  selectedIds.forEach(x=>movingIds.add(x));
+  selectedIds.forEach(x=>groupIdsForNode(x).forEach(y=>movingIds.add(y)));
+ }else{
+  groupIdsForNode(id).forEach(x=>movingIds.add(x));
+ }
+ movingIds.add(id);
+ dragging={id,startX:e.clientX,startY:e.clientY,ox:p.x,oy:p.y,pointerId:e.pointerId,movingIds:[...movingIds],startPositions:Object.fromEntries([...movingIds].map(mid=>[mid,{...ensurePosition(mid)}])),startBends:connections.map(c=>({id:c.id,bends:(c.bends||[]).map(b=>({x:Number(b.x)||0,y:Number(b.y)||0}))})),historyPushed:false};
+ try{node.setPointerCapture(e.pointerId)}catch(_){}
+ e.preventDefault();
+}
+document.addEventListener("pointermove",e=>{
+ if(!dragging)return;
+ if(lastNodeTap && Math.hypot(e.clientX-dragging.startX,e.clientY-dragging.startY)>8){
+  lastNodeTap=null;
+ }
+ e.preventDefault();
+ const rawX=Math.max(0,dragging.ox+(e.clientX-dragging.startX)/zoom);
+ const rawY=Math.max(0,dragging.oy+(e.clientY-dragging.startY)/zoom);
+ const aligned=showAlignmentGuides(dragging.id,snap10(rawX),snap10(rawY));
+ const nx=snap10(aligned.x),ny=snap10(aligned.y);
+ const deltaX=nx-dragging.startPositions[dragging.id].x;
+ const deltaY=ny-dragging.startPositions[dragging.id].y;
+ if((deltaX!==0||deltaY!==0)&&!dragging.historyPushed){
+  pushHistory();
+  dragging.historyPushed=true;
+ }
+ for(const mid of dragging.movingIds){
+  const sp=dragging.startPositions[mid];
+  positions[mid]={x:snap10(Math.max(0,sp.x+deltaX)),y:snap10(Math.max(0,sp.y+deltaY))};
+  const el=getNodeElementById(mid);
+  if(el){el.style.left=positions[mid].x+"px";el.style.top=positions[mid].y+"px"}
+ }
+ // 引線轉彎點也必須跟著批次移動的流程圖一起平移。
+ // 若引線只有一端在移動，就跟著該端的位移；若兩端都在同一批次中移動，
+ // 使用共同位移（正常多選／群組／Ctrl+A 都是同一個 delta），保持整條引線的相對座標。
+ const moved=new Set(dragging.movingIds);
+ const deltaFor=id=>{
+  const sp=dragging.startPositions[id];
+  if(!sp)return null;
+  const np=positions[id];
+  return {x:np.x-sp.x,y:np.y-sp.y};
+ };
+ for(const c of connections){
+  const fromMoved=moved.has(c.from),toMoved=moved.has(c.to);
+  if(!fromMoved&&!toMoved)continue;
+  // 普通拖曳子分支時，父→子階層引線的轉彎點固定在原本的絕對座標。
+  // 流程圖端點仍會跟著流程圖移動；只有轉彎點不做相對位移。
+  const draggingChildOnly=(c.to===dragging.id && hierarchyParentOf(c.to)===c.from);
+  if(draggingChildOnly && toMoved && !fromMoved)continue;
+  const df=fromMoved?deltaFor(c.from):null;
+  const dt=toMoved?deltaFor(c.to):null;
+  // 兩端都移動時，兩端應共享相同的批次位移；若因邊界限制造成差異，
+  // 以起點端位移為基準，避免同一轉彎點被重複平移。
+  const d=df||dt;
+  const snapInfo=dragging.startBends.find(x=>x.id===c.id);
+  const baseBends=snapInfo?snapInfo.bends:[];
+  if(!c.bends)c.bends=[];
+  c.bends=baseBends.map(b=>({x:snap10(b.x+d.x),y:snap10(b.y+d.y)}));
+ }
+ showNodeGridAnchor(dragging.id,nx,ny);
+ drawConnections();
+});
+
+
+
+document.addEventListener("pointerup",e=>{
+ if(dragging){
+  // 拖曳流程圖只改變流程圖的位置。
+  // 絕對不要因為拖曳位置而交換流程圖、重新指定引線端點或自動切換節點邊。
+  const clickDistance=Math.hypot(e.clientX-dragging.startX,e.clientY-dragging.startY);
+  const wasNodeClick=clickDistance<=8;
+  const nodeEl=e.target.closest?.(".flow-node");
+  const nodeId=nodeEl?.dataset?.id||null;
+  savePositions();
+  saveConnections();
+  dragging=null;hideAlignmentGuides();hideNodeGridAnchor();render();
+
+  // pointerdown 會 preventDefault，原生 dblclick 在部分瀏覽器不一定產生。
+  // 因此自行判定雙擊；單擊則延遲一小段時間，避免與第二次點擊衝突。
+  if(wasNodeClick&&nodeId){
+   const now=performance.now();
+   const isDouble=!!lastNodeTap && lastNodeTap.id===nodeId && (now-lastNodeTap.time)<=450
+     && Math.hypot(e.clientX-lastNodeTap.x,e.clientY-lastNodeTap.y)<=8;
+   if(isDouble){
+    if(nodeSingleClickTimer){clearTimeout(nodeSingleClickTimer);nodeSingleClickTimer=null;}
+    lastNodeTap=null;
+    suppressNextNodeDblClick=true;
+    setTimeout(()=>{suppressNextNodeDblClick=false},500);
+    toggleSubtree(nodeId);
+   }else{
+    if(nodeSingleClickTimer)clearTimeout(nodeSingleClickTimer);
+    lastNodeTap={id:nodeId,time:now,x:e.clientX,y:e.clientY};
+    nodeSingleClickTimer=setTimeout(()=>{
+     nodeSingleClickTimer=null;
+     if(lastNodeTap?.id!==nodeId)return;
+     lastNodeTap=null;
+     const n=nodeById(nodeId);
+     if(collapsedIds.has(nodeId)&&(n?.children||[]).length){
+      expandOneLevel(nodeId);
+     }
+    },260);
+   }
+  }else{
+   if(nodeSingleClickTimer){clearTimeout(nodeSingleClickTimer);nodeSingleClickTimer=null;}
+   lastNodeTap=null;
+  }
+ }
+});
+
+document.addEventListener("pointerover",e=>{
+ const h=e.target.closest?.(".handle");
+ if(h) h.classList.add("active");
+});
+document.addEventListener("pointerout",e=>{
+ const h=e.target.closest?.(".handle");
+ if(h) h.classList.remove("active");
+});
+
+
+function addBendPoint(){
+ if(!selectedConn){setStatus("請先選取一條引線。");return}
+ const c=connections.find(x=>x.id===selectedConn);if(!c)return;
+ const a=anchorPoint(c.from,c.fromSide||"right"),b=anchorPoint(c.to,c.toSide||"left");
+ if(!a||!b)return;
+ pushHistory();
+ const bends=c.bends||[];
+ let x=(a.x+b.x)/2,y=(a.y+b.y)/2;
+ if(bends.length){const last=bends[bends.length-1];x=last.x+20;y=last.y+20}
+ bends.push({x:snap10(x),y:snap10(y)});c.bends=bends;
+ saveConnections();render();setStatus("已新增轉彎點，可拖曳轉彎點；節點與轉彎點都使用全域10單位軸線點定位。");
+}
+function showBendGridAnchor(x,y){
+ const d=document.getElementById("diagram");
+ let m=document.getElementById("bendAnchorPoint");
+ if(!m){m=document.createElement("div");m.id="bendAnchorPoint";m.className="drag-anchor-point";d.appendChild(m)}
+ m.style.left=x+"px";m.style.top=y+"px";m.classList.add("show");
+}
+function hideBendGridAnchor(){
+ document.getElementById("bendAnchorPoint")?.classList.remove("show");
+}
+
+function startBendDrag(e){
+ const conn=connections.find(c=>c.id===e.currentTarget.dataset.conn);
+ if(!conn)return;
+ const i=Number(e.currentTarget.dataset.index);
+ const b=conn.bends[i];
+ if(!b)return;
+ const ox=b.x,oy=b.y;
+ let historyPushed=false;
+ const move=ev=>{
+   const q=screenToDiagram(ev);
+   const aligned=showAlignmentGuides("bend:"+conn.id+":"+i,snap10(q.x),snap10(q.y));
+   const nx=snap10(aligned.x),ny=snap10(aligned.y);
+   if((nx!==ox||ny!==oy)&&!historyPushed){
+    pushHistory();
+    historyPushed=true;
+   }
+   b.x=nx;b.y=ny;showBendGridAnchor(b.x,b.y);drawConnections();
+ };
+ const up=()=>{
+   document.removeEventListener("pointermove",move);document.removeEventListener("pointerup",up);
+   hideAlignmentGuides();hideBendGridAnchor();saveConnections();render();
+ };
+ document.addEventListener("pointermove",move);document.addEventListener("pointerup",up);
+ e.preventDefault();e.stopPropagation();
+}
+
+/*
+ * 父子關係只在「引線真正改變流程圖端點」時局部更新。
+ * 絕不從全部 connections 重建整棵 children 樹。
+ */
+function hierarchyParentOf(id){
+ const r=findNode(id); if(!r)return null;
+ return r.parent?.id||null;
+}
+function hierarchyIsDescendant(ancestorId,id){
+ if(!ancestorId||!id)return false;
+ const root=nodeById(ancestorId); if(!root)return false;
+ const seen=new Set();
+ function walk(n){
+  if(!n||seen.has(n.id))return false;
+  seen.add(n.id);
+  if(n.id===id)return true;
+  return (n.children||[]).some(walk);
+ }
+ return walk(root);
+}
+function detachChildFromParent(childId){
+ const r=findNode(childId); if(!r)return false;
+ const child=r.node;
+ if(r.parent){
+  r.parent.children=(r.parent.children||[]).filter(c=>c.id!==childId);
+  return true;
+ }
+ return false;
+}
+function attachChildToParent(parentId,childId){
+ if(!parentId||!childId||parentId===childId)return false;
+ const parent=nodeById(parentId),child=nodeById(childId);
+ if(!parent||!child)return false;
+ // 禁止把祖先掛到自己的子孫底下，避免形成循環。
+ if(hierarchyIsDescendant(childId,parentId))return false;
+ const oldParent=hierarchyParentOf(childId);
+ if(oldParent===parentId)return true;
+ detachChildFromParent(childId);
+ parent.children=parent.children||[];
+ if(!parent.children.some(c=>c.id===childId))parent.children.push(child);
+ return true;
+}
+function makeIndependentFlowchart(childId){
+ const r=findNode(childId); if(!r)return false;
+ if(!r.parent)return true;
+ r.parent.children=(r.parent.children||[]).filter(c=>c.id!==childId);
+ if(!data.children.some(c=>c.id===childId))data.children.push(r.node);
+ return true;
+}
+function updateHierarchyForConnectionChange(oldFrom,oldTo,newFrom,newTo){
+ // 只有流程圖 ID 改變才會改父子關係；單純換節點圓圈位置不改階層。
+ const endpointChanged=oldFrom!==newFrom||oldTo!==newTo;
+ if(!endpointChanged)return {changed:false,ok:true};
+ let changed=false;
+ // 舊的「父→子」關係如果仍是該子目前的直接父層，先解除。
+ if(oldTo && hierarchyParentOf(oldTo)===oldFrom){
+  makeIndependentFlowchart(oldTo);
+  changed=true;
+ }
+ // 新的「父→子」關係只處理這條引線的終點流程圖。
+ if(newFrom && newTo){
+  if(newFrom===newTo || hierarchyIsDescendant(newTo,newFrom)){
+   // 新關係會造成自己連自己／循環；還原由呼叫端負責。
+   return {changed:false,ok:false};
+  }
+  if(hierarchyParentOf(newTo)!==newFrom){
+   attachChildToParent(newFrom,newTo);
+   changed=true;
+  }
+ }
+ return {changed,ok:true};
+}
+function updateHierarchyForNewConnection(from,to){
+ if(!from||!to||from===to||hierarchyIsDescendant(to,from))return false;
+ return attachChildToParent(from,to);
+}
+function updateHierarchyForDeletedConnections(deletedConnections){
+ let changed=false;
+ for(const c of deletedConnections||[]){
+  if(c?.from&&c?.to&&hierarchyParentOf(c.to)===c.from){
+   makeIndependentFlowchart(c.to);
+   changed=true;
+  }
+ }
+ return changed;
+}
+
+function startConnection(e,from,side){
+ if(connectionDragActive)return;
+ connectionDragActive=true;
+ document.getElementById("tempConnection")?.remove();
+
+ // A handle can own multiple connections.
+ // - If a specific line is selected, move only that line.
+ // - If no line is selected, move every connection currently attached to
+ //   this exact handle. This is the default/batch behaviour the editor uses.
+ let editingItems=[];
+ if(selectedConn){
+  const chosen=connections.find(c=>c.id===selectedConn);
+  if(chosen){
+   const endpoint=chosen.from===from&&chosen.fromSide===side?"from":(chosen.to===from&&chosen.toSide===side?"to":null);
+   if(endpoint){
+    editingItems=[{conn:chosen,endpoint,oldFrom:chosen.from,oldTo:chosen.to,oldFromSide:chosen.fromSide,oldToSide:chosen.toSide}];
+   }
+  }
+ }else{
+  editingItems=connections.filter(c=>
+   (c.from===from&&c.fromSide===side)||(c.to===from&&c.toSide===side)
+  ).map(conn=>({
+   conn,
+   endpoint:conn.from===from&&conn.fromSide===side?"from":"to",
+   oldFrom:conn.from,oldTo:conn.to,oldFromSide:conn.fromSide,oldToSide:conn.toSide
+  }));
+ }
+ const editing=editingItems.length?editingItems[0]:null;
+ const sourceEl=getNodeElementById(from);
+ if(sourceEl)sourceEl.classList.add("connection-ready");
+ const svg=document.getElementById("diagramSvg");
+ const temp=document.createElementNS("http://www.w3.org/2000/svg","path");
+ temp.id="tempConnection";
+ temp.setAttribute("class","temp-line");
+ temp.setAttribute("vector-effect","non-scaling-stroke");
+ svg.appendChild(temp);
+
+ const cleanup=()=>{
+  document.removeEventListener("pointermove",move);
+  document.removeEventListener("pointerup",up);
+  document.removeEventListener("pointercancel",cancel);
+  temp.remove();
+  const source=getNodeElementById(from);
+  if(source)source.classList.remove("connection-ready");
+  document.querySelectorAll(".flow-node.connection-target").forEach(el=>el.classList.remove("connection-target"));
+  document.querySelectorAll(".handle.connection-target-handle").forEach(el=>el.classList.remove("connection-target-handle"));
+  connectionDragActive=false;
+ };
+ const move=ev=>{
+  if(!connectionDragActive)return;
+  const a=anchorPoint(from,side);
+  if(!a)return;
+  const q=screenToDiagram(ev);
+  temp.setAttribute("d",`M ${a.x} ${a.y} L ${q.x} ${q.y}`);
+  const hoveredHandle=ev.target.closest?.(".handle");
+  const hoveredNode=ev.target.closest?.(".flow-node");
+  document.querySelectorAll(".flow-node.connection-target").forEach(el=>el.classList.remove("connection-target"));
+  document.querySelectorAll(".handle.connection-target-handle").forEach(el=>el.classList.remove("connection-target-handle"));
+  if(hoveredHandle&&(!editing || hoveredHandle!==e.target)){
+   hoveredHandle.classList.add("connection-target-handle");
+   hoveredHandle.closest(".flow-node")?.classList.add("connection-target");
+  }else if(hoveredNode&&hoveredNode.dataset.id!==from){
+   hoveredNode.classList.add("connection-target");
+  }
+ };
+ const up=ev=>{
+  if(!connectionDragActive)return;
+  const targetHandle=ev.target.closest?.(".handle");
+  const target=targetHandle?.closest?.(".flow-node")||ev.target.closest?.(".flow-node");
+  cleanup();
+  if(!targetHandle||!target?.dataset.id){
+   setStatus("未連到目標節點，原本引線保持不變。");
+   render();
+   return;
+  }
+  const to=target.dataset.id;
+  const targetSide=targetHandle.dataset.side||inferSide(from,to);
+
+  // 未選取特定引線時，原本是「拖曳節點圓圈＝一起移動該圓圈上的全部引線」。
+  // 但若是從 A 流程圖的節點圓圈直接拉到 B 流程圖，應回歸「新增一條引線」，
+  // 不應把 A 原有的引線全部改接到 B。只有同一流程圖內的拖曳才維持批次移動。
+  const createNewCrossFlowConnection=!selectedConn && editingItems.length>0 && to!==from;
+  if(editing && !createNewCrossFlowConnection){
+   let changed=0;
+   const changedIds=[];
+   for(const item of editingItems){
+    const c=item.conn;
+    if(item.endpoint==="from" && to===item.oldFrom){
+     c.fromSide=targetSide;
+    }else if(item.endpoint==="to" && to===item.oldTo){
+     c.toSide=targetSide;
+    }else if(item.endpoint==="from"){
+     c.from=to;
+     c.fromSide=targetSide;
+    }else{
+     c.to=to;
+     c.toSide=targetSide;
+    }
+    // 父子關係只在流程圖端點真的改變時局部更新。
+    const hierarchyResult=updateHierarchyForConnectionChange(
+     item.oldFrom,item.oldTo,c.from,c.to
+    );
+    // Reject a true self-loop / cycle and restore this connection only.
+    if(!hierarchyResult.ok || c.from===c.to){
+     c.from=item.oldFrom;c.to=item.oldTo;
+     c.fromSide=item.oldFromSide;c.toSide=item.oldToSide;
+     // 若前面暫時解除舊父子關係，失敗時立即恢復原關係。
+     if(item.oldFrom&&item.oldTo)attachChildToParent(item.oldFrom,item.oldTo);
+     continue;
+    }
+    changed++;changedIds.push(c.id);
+   }
+   if(changed){
+    saveData();
+    saveConnections();
+    selectedConn=selectedConn&&changedIds.includes(selectedConn)?selectedConn:null;
+    setStatus((editingItems.length>1?"已將「"+from+"（"+side+"）」上的全部 ":"已將")+changed+" 條引線改接到「"+to+"（"+targetSide+"）」。");
+   }else{
+    setStatus("沒有可移動的引線，原連線保持不變。");
+   }
+  }else{
+   if(!connections.some(c=>c.from===from&&c.to===to&&c.fromSide===side&&c.toSide===targetSide)){
+    if(!updateHierarchyForNewConnection(from,to)){
+     setStatus("無法建立父子關係：不能連到自己或形成循環，原本引線保持不變。");
+     render();
+     return;
+    }
+    connections.push({id:uid(),from,to,fromSide:side,toSide:targetSide});
+    saveData();
+    saveConnections();
+    selectedId=to;
+    setStatus("已建立直線引線：「"+from+"（"+side+"）」 → 「"+to+"（"+targetSide+"）」，父子關係已局部更新。");
+   }else setStatus("這兩個節點的這組連線已存在。");
+  }
+  render();
+ };
+ const cancel=()=>{if(connectionDragActive){cleanup();render();setStatus("引線已取消，原連線保持不變。")}};
+ document.addEventListener("pointermove",move);
+ document.addEventListener("pointerup",up);
+ document.addEventListener("pointercancel",cancel);
+ move(e);
+ e.preventDefault();e.stopPropagation();
+ setStatus(editing
+   ? (editingItems.length>1
+      ? "正在移動這個節點上的全部引線；可拖到任一流程圖的節點圓圈。"
+      : "正在重新指定這一條引線；可拖到任一流程圖的節點圓圈。")
+   : "正在從「"+side+"」拉直線引線；放開滑鼠到目標節點圓圈即可。"
+ );
+}
+function renderEditor(){
+ const box=document.getElementById("editor"),r=findNode(selectedId);
+ if(!r){box.innerHTML='<div class="empty-state">請選取流程圖</div>';return}
+ const n=r.node,p=ensurePosition(n.id);
+ box.innerHTML='<div class="title">流程圖設定</div>'+
+ '<div class="field"><label>名稱</label><input id="fName" value="'+esc(n.name)+'"></div>'+
+ '<div class="field"><label>類型（顯示在節點下方）</label><input id="fType" value="'+esc(n.type||"一般")+'"></div>'+
+ '<div class="field"><label>備註</label><textarea id="fNote">'+esc(n.note||"")+'</textarea></div>'+
+ '<div class="field"><label>詳細資料</label><textarea id="fContent">'+esc(n.content||"")+'</textarea></div>'+
+ '<div class="field"><label>節點位置 X / Y（全域10單位軸線端點）</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input id="fX" type="number" value="'+Math.round(p.x)+'"><input id="fY" type="number" value="'+Math.round(p.y)+'"></div></div>'+
+ '<div class="actions"><button class="primary" onclick="saveNode()">儲存修改</button><button class="primary" onclick="duplicateNode()">複製流程圖</button><button id="applySubbranchBtn" onclick="startApplyFlowchart()" aria-pressed="false">套用子分支</button><button class="danger" onclick="removeNode()">流程圖刪除</button></div>'+
+ '<div class="help">節點與引線轉彎點共用全域10單位座標系：流程圖左上角定位端點與引線轉彎點本身都吸附到背景定位點上的軸線端點（全域10單位，0、10、20、30…）；「複製流程圖」只複製目前流程圖；「套用子分支」會將下一個點選流程圖的所有子分支套用到目前選取的流程圖，來源本身不複製，並複製相關引線；流程圖連點兩下可展開／收合所有子孫分支；沒有有效父引線的新增／複製流程圖視為獨立父流程；節點四邊都有隱形連線點；只有拉引線時才顯示；點擊引線後可刪除；選取引線後可連續新增轉彎點。新增分支會立即出現，每個節點都有自己的座標。</div>';
+}
+function saveNode(){
+ const r=findNode(selectedId);if(!r)return;
+ const name=document.getElementById("fName").value.trim()||"未命名";
+ const type=document.getElementById("fType").value.trim()||"一般";
+ const note=document.getElementById("fNote").value;
+ const content=document.getElementById("fContent").value;
+ if(r.node.name===name&&r.node.type===type&&r.node.note===note&&r.node.content===content){
+  setStatus("沒有需要儲存的變更。");
+  return;
+ }
+ pushHistory();
+ r.node.name=name;r.node.type=type;r.node.note=note;r.node.content=content;
+ saveData();applyPosition(false);render();setStatus("節點資料已儲存。");
+}
+function updateApplySubbranchButton(){
+ const b=document.getElementById("applySubbranchBtn");
+ const active=!!applyFlowchartMode;
+ document.body.classList.toggle("apply-subbranch-mode",active);
+ if(!b)return;
+ b.classList.toggle("apply-subbranch-active",active);
+ b.setAttribute("aria-pressed",active?"true":"false");
+ if(active){
+  b.style.setProperty("background","#2563eb","important");
+  b.style.setProperty("color","#fff","important");
+  b.style.setProperty("border-color","#2563eb","important");
+  b.style.setProperty("box-shadow","0 0 0 2px rgba(37,99,235,.22)","important");
+  b.textContent="套用子分支（請點目標）";
+  b.title="已進入套用模式：左鍵點另一個流程圖，將它的子分支複製到目前選取的流程圖；再按一次取消。";
+ }else{
+  b.style.removeProperty("background");
+  b.style.removeProperty("color");
+  b.style.removeProperty("border-color");
+  b.style.removeProperty("box-shadow");
+  b.textContent="套用子分支";
+  b.title="先選要接收子分支的流程圖，再按此按鈕，最後左鍵點提供子分支的流程圖。";
+ }
+}
+function cancelApplyFlowchart(){
+ applyFlowchartBusy=false;
+ applyFlowchartMode=false;
+ applyFlowchartSourceId=null;
+ document.body.classList.remove("apply-subbranch-mode");
+ updateApplySubbranchButton();
+}
+function startApplyFlowchart(){
+ if(applyFlowchartMode){
+  cancelApplyFlowchart();
+  setStatus("已取消「套用子分支」。");
+  return;
+ }
+ if(!selectedId){
+  setStatus("請先選擇要接收子分支的流程圖。");
+  return;
+ }
+ const destination=nodeById(selectedId);
+ if(!destination){
+  setStatus("找不到目前選取的流程圖。");
+  return;
+ }
+ // 新版規則：目前選取的流程圖是「接收方」；按下套用後，
+ // 下一個點擊的流程圖才是「來源範本」。不再使用 copySourceId，也不會反向套用。
+ applyFlowchartSourceId=selectedId;
+ applyFlowchartMode=true;
+ applyFlowchartBusy=false;
+ selectedConn=null;
+ updateApplySubbranchButton();
+ setStatus("已鎖定「"+destination.name+"」為套用目標；現在左鍵點另一個流程圖，將複製它的完整子分支、引線與相對座標。");
+}
+
+function collectApplyDescendants(sourceId){
+ const root=nodeById(sourceId);
+ const ids=new Set();
+ function walk(node){
+  if(!node||ids.has(node.id))return;
+  ids.add(node.id);
+  (node.children||[]).forEach(walk);
+ }
+ walk(root);
+ return ids;
+}
+
+function cloneApplyTree(source){
+ const idMap=new Map([[source.id,source.id]]);
+ function cloneNode(node){
+  const id=uid();
+  idMap.set(node.id,id);
+  return {
+   id,
+   name:node.name,
+   type:node.type||"一般",
+   note:node.note||"",
+   content:node.content||"",
+   children:(node.children||[]).map(cloneNode)
+  };
+ }
+ return {children:(source.children||[]).map(cloneNode),idMap};
+}
+
+function countTreeNodes(nodes){
+ let total=0;
+ for(const node of (nodes||[])){
+  total++;
+  total+=countTreeNodes(node.children||[]);
+ }
+ return total;
+}
+
+// 全新「套用子分支」規則：
+// destinationId = 按下套用子分支時已選取的流程圖（接收方）
+// templateId    = 按下套用後，使用者左鍵點選的流程圖（來源）
+// 例如：先複製出「地監（複製）」→ 選它 → 套用子分支 → 點「地監」
+// 結果就是把「地監」下面的第一關／第二關／BOSS關複製到「地監（複製）」下面。
+function applyFlowchartToTarget(destinationId,templateId){
+ try{
+  if(applyFlowchartBusy)return false;
+  const destination=nodeById(destinationId);
+  const template=nodeById(templateId);
+  if(!destination||!template){
+   setStatus("找不到套用目標或來源流程圖。");
+   return false;
+  }
+  if(destinationId===templateId){
+   setStatus("不能把流程圖套用到自己；請點另一個流程圖。");
+   return false;
+  }
+
+  // 先把來源子樹完整快照下來，避免複製過程修改 template.children。
+  const templateChildren=Array.from(template.children||[]);
+  if(!templateChildren.length){
+   setStatus("「"+template.name+"」下面沒有子分支可以套用。");
+   return false;
+  }
+
+  applyFlowchartBusy=true;
+  const result=cloneApplyTree(template);
+  const copies=result.children;
+  const sourceIds=collectApplyDescendants(templateId);
+  const templatePos={...ensurePosition(templateId)};
+  const destinationPos={...ensurePosition(destinationId)};
+  const dx=destinationPos.x-templatePos.x;
+  const dy=destinationPos.y-templatePos.y;
+
+  pushHistory();
+
+  // 1. 只把來源的 children 加到接收方；來源流程圖本身不複製。
+  destination.children=destination.children||[];
+  destination.children.push(...copies);
+
+  // 2. 每一個複製流程圖都使用「來源相對於來源根」的座標差，
+  //    直接套到「接收方相對於接收方根」的位置。
+  function place(original,copied){
+   const op=ensurePosition(original.id);
+   positions[copied.id]={
+    x:snap10(op.x+dx),
+    y:snap10(op.y+dy)
+   };
+   (original.children||[]).forEach((child,i)=>{
+    if(copied.children[i])place(child,copied.children[i]);
+   });
+  }
+  templateChildren.forEach((child,i)=>place(child,copies[i]));
+
+  // 3. 複製來源範本內部的所有引線：
+  //    - 根 → 子分支：根端點改接到 destination
+  //    - 子分支 ↔ 子分支：兩端都映射到新的複製品
+  //    - 來源範本外的引線一律不複製
+  //    - 引線轉彎點也使用同一個 dx / dy 保留相對位置
+  const copiedConnections=[];
+  const pairSet=new Set();
+  function addCopiedConnection(c){
+   if(!c||c.from===c.to)return;
+   const from=c.from===templateId?destinationId:result.idMap.get(c.from);
+   const to=c.to===templateId?destinationId:result.idMap.get(c.to);
+   if(!from||!to||from===to)return;
+   const key=from+"|"+to;
+   if(pairSet.has(key))return;
+   pairSet.add(key);
+   const inferred=inferSidesByGeometry(from,to);
+   copiedConnections.push({
+    id:uid(),
+    from,
+    to,
+    fromSide:c.fromSide||inferred.fromSide,
+    toSide:c.toSide||inferred.toSide,
+    bends:(c.bends||[]).map(b=>({
+     x:snap10(Number(b.x)+dx),
+     y:snap10(Number(b.y)+dy)
+    }))
+   });
+  }
+  for(const c of connections){
+   if(!sourceIds.has(c.from)||!sourceIds.has(c.to))continue;
+   addCopiedConnection(c);
+  }
+
+  // 舊專案若 children 有父子關係但缺少對應引線，補上結構線。
+  function ensureStructural(parentOriginal,childrenOriginal,parentCopied,childrenCopied){
+   (childrenOriginal||[]).forEach((child,i)=>{
+    const copiedChild=childrenCopied?.[i];
+    if(!copiedChild)return;
+    const from=parentOriginal.id===templateId?destinationId:result.idMap.get(parentOriginal.id);
+    const to=result.idMap.get(child.id);
+    if(from&&to&&!connections.some(c=>c.from===parentOriginal.id&&c.to===child.id)
+       &&!pairSet.has(from+"|"+to)){
+     const sides=inferSidesByGeometry(from,to);
+     pairSet.add(from+"|"+to);
+     copiedConnections.push({id:uid(),from,to,fromSide:sides.fromSide,toSide:sides.toSide,bends:[]});
+    }
+    ensureStructural(child,child.children||[],copiedChild,copiedChild.children||[]);
+   });
+  }
+  ensureStructural(template,templateChildren,destination,copies);
+  connections.push(...copiedConnections);
+
+  saveData();
+  savePositions();
+  saveConnections();
+  selectedId=destinationId;
+  selectedConn=null;
+  render();
+  setStatus("已將「"+template.name+"」的子分支套用到「"+destination.name+"」：複製 "+countTreeNodes(copies)+" 個流程圖與 "+copiedConnections.length+" 條引線，並保留相對座標。");
+  return true;
+ }catch(err){
+  console.error("applyFlowchartToTarget",err);
+  setStatus("套用子分支失敗："+(err&&err.message?err.message:"未知錯誤"));
+  return false;
+ }finally{
+  applyFlowchartBusy=false;
+ }
+}
+
+function applyPosition(redraw=true){
+ const p=ensurePosition(selectedId);
+ const x=Number(document.getElementById("fX").value),y=Number(document.getElementById("fY").value);
+ const nx=Number.isFinite(x)?snap10(Math.max(0,Math.min(1700,x))):p.x;
+ const ny=Number.isFinite(y)?snap10(Math.max(0,Math.min(1000,y))):p.y;
+ if(allCanvasSelected && selectedIds.length>1){
+  const dx=nx-p.x,dy=ny-p.y;
+  for(const id of selectedIds){
+   const q=ensurePosition(id);
+   q.x=snap10(Math.max(0,Math.min(1700,q.x+dx)));
+   q.y=snap10(Math.max(0,Math.min(1000,q.y+dy)));
+  }
+  savePositions();if(redraw)render();
+  setStatus("已將全選的 "+selectedIds.length+" 個流程圖整體移動到基準座標 X="+nx+"、Y="+ny+"；相對座標保持不變。");
+  return;
+ }
+ p.x=nx;p.y=ny;
+ savePositions();if(redraw)render();setStatus("節點位置已更新。");
+}
+function addChild(){
+ const r=findNode(selectedId);
+ pushHistory();
+ const n={id:uid(),name:"新分支",type:"一般",note:"",content:"",children:[]};
+ // 「新增」本身不建立父引線，因此依最新規則一律先視為獨立父流程；
+ // 父子階層先完全依現有 data.children 保留；本版暫不由引線自動重整父子關係。
+ data.children=data.children||[];
+ data.children.push(n);
+ // 有選取流程圖時仍優先放在其附近；沒有選取時放在目前可視範圍中央。
+ if(r){
+  const p=ensurePosition(r.node.id);
+  positions[n.id]={x:snap10(p.x+220),y:snap10(p.y+80)};
+  setStatus("已新增獨立流程圖；若從父流程圖拉出引線，它會自動成為該流程圖的子分支。");
+ }else{
+  const viewport=document.getElementById("canvasScroll");
+  const rect=viewport.getBoundingClientRect();
+  const cx=rect.left+rect.width/2;
+  const cy=rect.top+rect.height/2;
+  const worldX=(cx-rect.left-panX)/zoom;
+  const worldY=(cy-rect.top-panY)/zoom;
+  const nodeW=110,nodeH=60;
+  positions[n.id]={
+   x:snap10(Math.max(0,Math.min(1700,worldX-nodeW/2))),
+   y:snap10(Math.max(0,Math.min(1000,worldY-nodeH/2)))
+  };
+  setStatus("已在目前可視範圍中央新增獨立流程圖；若從父流程圖拉出引線，它會自動成為該流程圖的子分支。");
+ }
+ selectedIds=[n.id];selectedId=n.id;selectedConn=null;selectedConnIds.clear();allCanvasSelected=false;
+ saveData();savePositions();render();
+ setTimeout(()=>document.getElementById("fName")?.focus(),0);
+}
+function duplicateNode(){
+ const r=findNode(selectedId);
+ if(!r||!r.parent){setStatus("根節點不能複製。");return}
+ const source=r.node;
+ pushHistory();
+ const c={
+  id:uid(),name:source.name+"（複製）",type:source.type||"一般",
+  note:source.note||"",content:source.content||"",children:[],
+  copySourceId:source.copySourceId||source.id
+ };
+ data.children=data.children||[];data.children.push(c);
+ const p=ensurePosition(source.id);
+ positions[c.id]={x:snap10(p.x+50),y:snap10(p.y+70)};
+ selectedIds=[c.id];selectedId=c.id;selectedConnIds.clear();allCanvasSelected=false;
+ saveData();savePositions();render();
+ setStatus("已複製「"+source.name+"」流程圖；子分支不直接複製，但可從複製品按「套用子分支」後，點目標流程圖來套用原流程圖的完整子分支與引線。");
+}
+
+function deleteSelectedConnections(){
+ const ids=new Set(selectedConnIds);
+ if(selectedConn)ids.add(selectedConn);
+ if(!ids.size){setStatus("請先選取引線");return false}
+ if(!confirm("確定要刪除選取的 "+ids.size+" 條引線嗎？"))return false;
+ pushHistory();
+ const deletedConnections=connections.filter(c=>ids.has(c.id));
+ connections=connections.filter(c=>!ids.has(c.id));
+ updateHierarchyForDeletedConnections(deletedConnections);
+ saveData();
+ selectedConn=null;selectedConnIds.clear();
+ saveConnections();render();setStatus("已刪除 "+ids.size+" 條引線。");
+ return true;
+}
+function selectedDeletableFlowchartRoots(){
+ const selected=new Set(selectedIds.filter(id=>id&&id!==data.id&&nodeById(id)));
+ if(!selected.size)return [];
+ const roots=[];
+ for(const id of selected){
+  let r=findNode(id),p=r?.parent,blocked=false;
+  while(p){
+   if(selected.has(p.id)){blocked=true;break}
+   p=findNode(p.id)?.parent||null;
+  }
+  if(!blocked)roots.push(id);
+ }
+ return roots;
+}
+function deleteSelectedFlowcharts(){
+ const rootIds=selectedDeletableFlowchartRoots();
+ if(!rootIds.length)return [];
+ const deleteIds=new Set();
+ for(const id of rootIds){const n=nodeById(id);if(n)allNodes(n).forEach(x=>deleteIds.add(x.id));}
+ if(!deleteIds.size)return [];
+ if(!confirm("確定要刪除選取的 "+rootIds.length+" 個流程圖及其子孫分支嗎？\n\n相關引線與群組關係也會一起清除。"))return [];
+ pushHistory();
+ function prune(parent){
+  if(!parent?.children)return;
+  parent.children=parent.children.filter(child=>{
+   if(deleteIds.has(child.id))return false;
+   prune(child);return true;
+  });
+ }
+ prune(data);
+ connections=connections.filter(c=>!deleteIds.has(c.from)&&!deleteIds.has(c.to));
+ deleteIds.forEach(id=>{delete positions[id];collapsedIds.delete(id)});
+ groups=groups.map(g=>({...g,ids:g.ids.filter(id=>!deleteIds.has(id))})).filter(g=>g.ids.length>=2);
+ selectedIds=[data.id];selectedId=data.id;selectedConn=null;selectedConnIds.clear();allCanvasSelected=false;
+ saveData();savePositions();saveConnections();saveGroups();saveCollapsedIds();render();
+ setStatus("已刪除 "+rootIds.length+" 個流程圖及其子孫分支。");
+ return [...deleteIds];
+}
+function removeNode(){
+ const rootIds=selectedDeletableFlowchartRoots();
+ if(!rootIds.length){setStatus("請選流程圖");return false}
+ return !!deleteSelectedFlowcharts().length;
+}
+function deleteSelectedItems(){
+ const connIds=new Set(selectedConnIds);
+ if(selectedConn)connIds.add(selectedConn);
+ const flowRoots=selectedDeletableFlowchartRoots();
+ if(!connIds.size&&!flowRoots.length){setStatus("請選流程圖或引線");return}
+ const parts=[];
+ if(flowRoots.length)parts.push(flowRoots.length+" 個流程圖及其子孫分支");
+ if(connIds.size)parts.push(connIds.size+" 條引線");
+ if(!confirm("確定要刪除「"+parts.join("、")+"」嗎？"))return;
+ pushHistory();
+ let deleteIds=new Set();
+ for(const id of flowRoots){const n=nodeById(id);if(n)allNodes(n).forEach(x=>deleteIds.add(x.id));}
+ if(deleteIds.size){
+  function prune(parent){
+   if(!parent?.children)return;
+   parent.children=parent.children.filter(child=>{
+    if(deleteIds.has(child.id))return false;
+    prune(child);return true;
+   });
+  }
+  prune(data);
+  deleteIds.forEach(id=>{delete positions[id];collapsedIds.delete(id)});
+  groups=groups.map(g=>({...g,ids:g.ids.filter(id=>!deleteIds.has(id))})).filter(g=>g.ids.length>=2);
+ }
+ if(connIds.size||deleteIds.size){
+  const deletedConnections=connections.filter(c=>connIds.has(c.id));
+  connections=connections.filter(c=>!connIds.has(c.id)&&!deleteIds.has(c.from)&&!deleteIds.has(c.to));
+  updateHierarchyForDeletedConnections(deletedConnections);
+  }
+ selectedIds=[data.id];selectedId=data.id;selectedConn=null;selectedConnIds.clear();allCanvasSelected=false;
+ saveData();savePositions();saveConnections();saveGroups();saveCollapsedIds();render();
+ setStatus("已刪除選取項目。" );
+}
+
+
+function setStatus(t){document.getElementById("canvasStatus").textContent=t}
+
+
+function baseFileName(name){
+ return String(name||"樹狀圖整理工具_v1.0.7.json").replace(/\.[^.]+$/,"");
+}
+function setFileName(name){
+ const clean=String(name||"樹狀圖整理工具_v1.0.7.json").trim()||"樹狀圖整理工具_v1.0.7.json";
+ currentFileName=/\.[^.]+$/.test(clean)?clean:clean+".json";
+ safeStorage.setItem(KEY+"_filename",currentFileName);
+ const el=document.getElementById("appTitle");
+ if(el)el.textContent=currentFileName;
+}
+function projectPayload(){
+ return {
+  format:"副本資料整理器專案",
+  version:"1.0.7",
+  filename:currentFileName,
+  title:baseFileName(currentFileName),
+  theme:document.body.classList.contains("dark")?"dark":"light",
+  data:data,positions:positions,connections:connections,groups:groups,collapsedIds:[...collapsedIds]
+ };
+}
+function downloadProject(filename){
+ const blob=new Blob([JSON.stringify(projectPayload(),null,2)],{type:"application/json;charset=utf-8"});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);a.download=filename||currentFileName||"樹狀圖整理工具_v1.0.7.json";
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+async function writeProjectToHandle(handle){
+ const writable=await handle.createWritable();
+ await writable.write(JSON.stringify(projectPayload(),null,2));
+ await writable.close();
+}
+
+function showSaveSuccessModal(fileNameText){
+ const modal=document.getElementById("saveSuccessModal");
+ const text=document.getElementById("saveSuccessText");
+ if(!modal)return;
+ if(text)text.textContent=`「${fileNameText||"目前檔案"}」已成功儲存。`;
+ modal.classList.add("show");
+}
+function closeSaveSuccessModal(){
+ const modal=document.getElementById("saveSuccessModal");
+ if(modal)modal.classList.remove("show");
+}
+
+async function saveProject(saveAs){
+ const defaultName=currentFileName||"樹狀圖整理工具_v1.0.7.json";
+
+ // 「儲存檔案」= 直接儲存目前檔案；只有「另存新檔」才要求選擇新位置。
+ if(!saveAs){
+  if(currentFileHandle){
+   writeProjectToHandle(currentFileHandle).then(()=>{
+    const savedName=currentFileHandle.name||defaultName;
+    setStatus("已儲存檔案："+savedName);
+    showSaveSuccessModal(savedName);
+   }).catch(e=>{
+    console.error("save project failed",e);
+    setStatus("儲存失敗："+(e?.message||"未知錯誤"));
+    alert("儲存檔案失敗：\n"+(e?.message||"未知錯誤"));
+   });
+   return;
+  }
+  // 透過 fallback <input type=file> 開啟時，瀏覽器沒有原檔案寫入權限。
+  // 不把下載冒充成「儲存」；「另存新檔」才負責建立新的寫入檔案。
+  setStatus("目前檔案沒有直接寫入權限，請使用「另存新檔」。");
+  return;
+ }
+
+ // 「另存新檔」才使用選擇位置。
+ if(window.showSaveFilePicker){
+  (async()=>{
+   try{
+    const handle=await window.showSaveFilePicker({
+     suggestedName:defaultName,
+     types:[{description:"副本資料整理器專案",accept:{"application/json":[".json"]}}]
+    });
+    await writeProjectToHandle(handle);
+    currentFileHandle=handle;
+    setFileName(handle.name);
+    setStatus("已另存新檔："+handle.name);
+    showSaveSuccessModal(handle.name);
+   }catch(e){
+    if(e&&e.name==="AbortError")return;
+    console.error("save as failed",e);
+    setStatus("另存失敗："+(e?.message||"未知錯誤"));
+   }
+  })();
+  return;
+ }
+ downloadProject(defaultName);
+ setStatus("已另存新檔。");
+ showSaveSuccessModal(defaultName);
+}
+
+function collectNodeIds(root){
+ const ids=new Set();
+ function walk(n){
+  if(!n||typeof n!=="object"||typeof n.id!=="string")return;
+  ids.add(n.id);
+  (Array.isArray(n.children)?n.children:[]).forEach(walk);
+ }
+ walk(root);
+ return ids;
+}
+function sanitizeImportedPositions(raw,validIds){
+ const out={};
+ if(raw&&typeof raw==="object"&&!Array.isArray(raw)){
+  for(const [id,p] of Object.entries(raw)){
+   if(!validIds.has(id)||!p||typeof p!=="object")continue;
+   const x=Number(p.x),y=Number(p.y);
+   if(Number.isFinite(x)&&Number.isFinite(y))out[id]={x:snap10(x),y:snap10(y)};
+  }
+ }
+ for(const id of validIds){
+  if(out[id])continue;
+  const d=DEFAULT_POS[id];
+  out[id]=d?{x:d.x,y:d.y}:{x:GRID_ORIGIN,y:GRID_ORIGIN};
+ }
+ return out;
+}
+function sanitizeImportedConnections(raw,validIds){
+ if(!Array.isArray(raw))return [];
+ const out=[],seen=new Set();
+ for(const c of raw){
+  if(!c||typeof c!=="object")continue;
+  if(typeof c.from!=="string"||typeof c.to!=="string")continue;
+  if(!validIds.has(c.from)||!validIds.has(c.to)||c.from===c.to)continue;
+  const key=c.from+"|"+c.to+"|"+(c.fromSide||"")+"|"+(c.toSide||"");
+  if(seen.has(key))continue;
+  seen.add(key);
+  out.push({
+   id:typeof c.id==="string"&&c.id?c.id:uid(),
+   from:c.from,to:c.to,
+   fromSide:typeof c.fromSide==="string"?c.fromSide:"right",
+   toSide:typeof c.toSide==="string"?c.toSide:"left",
+   bends:Array.isArray(c.bends)?c.bends.map(b=>{
+    const x=Number(b?.x),y=Number(b?.y);
+    return Number.isFinite(x)&&Number.isFinite(y)?{x:snap10(x),y:snap10(y)}:null;
+   }).filter(Boolean):[]
+  });
+ }
+ return out;
+}
+function normalizeImportedProject(raw){
+ if(!raw||typeof raw!=="object")throw new Error("JSON 根資料不是物件。");
+ if(!raw.data||typeof raw.data!=="object")throw new Error("JSON 缺少有效的 data 樹狀資料。");
+ const ids=collectNodeIds(raw.data);
+ if(!ids.size)throw new Error("JSON 沒有有效節點。");
+ return {
+  data:raw.data,
+  positions:sanitizeImportedPositions(raw.positions,ids),
+  connections:sanitizeImportedConnections(raw.connections,ids),
+  groups:normalizeGroups(raw.groups,ids),
+  collapsedIds:new Set(
+   Array.isArray(raw.collapsedIds)
+    ? raw.collapsedIds.filter(id=>ids.has(id)&&id!==raw.data.id)
+    : []
+  ),
+  theme:raw.theme==="dark"?"dark":"light",
+  filename:typeof raw.filename==="string"&&raw.filename?raw.filename:"副本資料整理器.json"
+ };
+}
+async function readProjectFile(file){
+ try{
+  const raw=JSON.parse(await file.text());
+  const project=normalizeImportedProject(raw);
+  data=project.data;
+  positions=project.positions;
+  connections=project.connections;
+  groups=project.groups||[];
+  collapsedIds=project.collapsedIds instanceof Set?project.collapsedIds:new Set();
+  saveCollapsedIds();
+  selectedIds=[data.id];
+  selectedId=data.id;
+  selectedConn=null;
+  selectedConnIds.clear();
+  allCanvasSelected=false;
+  applyFlowchartMode=false;
+  applyFlowchartSourceId=null;
+  setFileName(file.name||project.filename);
+  safeStorage.setItem(KEY+"_data",JSON.stringify(data));
+  safeStorage.setItem(KEY+"_pos",JSON.stringify(positions));
+  safeStorage.setItem(KEY+"_conn",JSON.stringify(connections));
+  safeStorage.setItem(KEY+"_groups",JSON.stringify(groups));
+  if(project.theme==="dark"||project.theme==="light"){
+   theme=project.theme;
+   applyTheme();
+   safeStorage.setItem(KEY+"_theme",project.theme);
+  }
+  render();
+  updateThemeButton();
+  setStatus("已開啟檔案："+(file.name||project.filename)+"；已清理無效舊座標與失效引線。");
+ }catch(err){
+  console.error("open project failed",err);
+  setStatus("開啟失敗："+(err?.message||"未知錯誤"));
+  alert("開啟檔案失敗：\n"+(err?.message||"未知錯誤"));
+ }
+}
+function newProject(){
+ // 與首次沒有既有專案時的預設專案一致；不先覆寫舊 localStorage。
+ data=JSON.parse(JSON.stringify(seed));
+ positions=JSON.parse(JSON.stringify(DEFAULT_POS));
+ connections=[];
+ groups=[];
+ collapsedIds=new Set();
+ selectedIds=[data.id];
+ selectedId=data.id;
+ selectedConn=null;
+ selectedConnIds.clear();
+ allCanvasSelected=false;
+ applyFlowchartMode=false;
+ applyFlowchartSourceId=null;
+ currentFileHandle=null;
+ setFileName("樹狀圖整理工具_v1.0.7.json");
+ render();
+ updateThemeButton();
+ setStatus("已建立新檔案：樹狀圖整理工具_v1.0.7.json。");
+}
+async function openProject(){
+ // 優先使用 File System Access API，取得原檔案 handle，
+ // 之後「儲存檔案」才能直接寫回同一個檔案。
+ // 支援的 Chromium file:// 環境也走這條路。
+ const canUsePicker=!!window.showOpenFilePicker && window.isSecureContext;
+ if(canUsePicker){
+  try{
+   const [handle]=await window.showOpenFilePicker({
+    multiple:false,
+    types:[{description:"副本資料整理器專案",accept:{"application/json":[".json"]}}]
+   });
+   currentFileHandle=handle;
+   await readProjectFile(await handle.getFile());
+   return;
+  }catch(e){
+   if(e&&e.name==="AbortError")return;
+   // Do NOT fall through to another picker after a real picker error.
+   setStatus("開啟檔案視窗失敗："+(e?.message||"未知錯誤"));
+   return;
+  }
+ }
+ const input=document.getElementById("fileInput");
+ currentFileHandle=null;
+ input.value="";
+ input.click();
+}
+function openProjectFromFile(e){
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ currentFileHandle=null;
+ readProjectFile(file);
+ e.target.value="";
+}
+function renameProject(){
+ const old=baseFileName(currentFileName);
+ const value=prompt("重新命名檔案：",old);
+ if(value===null)return;
+ const v=value.trim();
+ if(!v)return;
+ if(v===old){setStatus("檔案名稱沒有變更。");return}
+ pushHistory();
+ setFileName(v+".json");
+ setStatus("檔案名稱已修改為："+currentFileName+"。按「儲存檔案」即可儲存。");
+}
+function setAppTitle(){setFileName(currentFileName)}
+function applyTheme(){
+ const isDark=theme==="dark";
+ document.documentElement.dataset.theme=theme;
+ document.body.classList.toggle("dark",isDark);
+ document.body.classList.toggle("light",!isDark);
+}
+function updateThemeButton(){
+ const b=document.getElementById("themeBtn");if(!b)return;
+ const dark=document.body.classList.contains("dark");
+ b.textContent=dark?"🌙":"☀️";
+ b.title=dark?"切換為淺色模式":"切換為深色模式";
+ b.setAttribute("aria-label",b.title);
+}
+function toggleTheme(){
+ const dark=!document.body.classList.contains("dark");
+ document.body.classList.toggle("dark",dark);
+ safeStorage.setItem(KEY+"_theme",dark?"dark":"light");
+ updateThemeButton();
+}
+
+
+
+
+document.getElementById("canvasScroll").addEventListener("wheel",e=>{
+ e.preventDefault();
+ const factor=e.deltaY<0?1.1:0.9;
+ applyZoom(zoom*factor,e.clientX,e.clientY);
+},{passive:false});
+
+// 套用子分支：使用 document 捕獲階段攔截目標流程圖。
+// 這樣點標題、類型、方框空白處都會先被辨識，不會被流程圖拖曳或 canvas 事件吃掉。
+document.addEventListener("pointerdown",e=>{
+ if(!applyFlowchartMode||applyFlowchartBusy||e.button!==0)return;
+ if(e.target.closest?.("#applySubbranchBtn"))return;
+ if(e.target.closest?.(".handle,.input-handle,.bend-point,.conn"))return;
+
+ // 套用模式的目標是「整個流程圖可視框」，包含選取時藍色外框的區域。
+ // outline 本身不屬於 DOM hit area，因此若只靠 closest(.flow-node)，
+ // 點到藍色外框時會拿不到目標。這裡再用螢幕座標做一次幾何命中測試，
+ // 讓藍框內外的可視範圍都算同一個目標。
+ let el=e.target.closest?.(".flow-node");
+ if(!el){
+  const x=e.clientX,y=e.clientY,halo=8;
+  const nodes=document.querySelectorAll(".flow-node");
+  for(const candidate of nodes){
+   const r=candidate.getBoundingClientRect();
+   if(x>=r.left-halo&&x<=r.right+halo&&y>=r.top-halo&&y<=r.bottom+halo){
+    el=candidate;
+    break;
+   }
+  }
+ }
+ if(!el)return;
+ const targetId=el.dataset.id;
+ const sourceId=applyFlowchartSourceId;
+ if(!sourceId){
+  setStatus("套用來源遺失，請重新按「套用子分支」。");
+  cancelApplyFlowchart();
+  return;
+ }
+ if(sourceId===targetId){
+  setStatus("這是來源流程圖；請左鍵點另一個流程圖作為目標。");
+  return;
+ }
+ const ok=applyFlowchartToTarget(sourceId,targetId);
+ if(ok)cancelApplyFlowchart();
+},true);
+
+document.getElementById("canvasScroll").addEventListener("pointerdown",e=>{
+ if(e.button!==0)return;
+ const target=e.target;
+ if(target.closest?.(".flow-node")||target.closest?.(".bend-point")||target.closest?.(".conn"))return;
+ // 點任何空白背景都取消「全部」選取：流程圖、引線、多選、Ctrl+A。
+ // 注意：只有真正的畫布空白才會進到這裡；流程圖、轉彎點、引線已在上方排除。
+ selectedIds=[];
+ selectedId=null;
+ selectedConn=null;
+ selectedConnIds.clear();
+ allCanvasSelected=false;
+ hideAlignmentGuides();
+ hideNodeGridAnchor();
+ render();
+ setStatus("已取消全部選取。");
+ const s=document.getElementById("canvasScroll");
+ s.focus({preventScroll:true});
+ const sx=e.clientX,sy=e.clientY,px=panX,py=panY;
+ let moved=false;
+ s.classList.add("panning");
+ try{s.setPointerCapture(e.pointerId)}catch(_){}
+ const move=ev=>{
+   moved=true;
+   panX=px+(ev.clientX-sx);
+   panY=py+(ev.clientY-sy);
+   renderCanvas();
+ };
+ const up=()=>{
+   s.classList.remove("panning");
+   try{s.releasePointerCapture(e.pointerId)}catch(_){}
+   document.removeEventListener("pointermove",move);
+   document.removeEventListener("pointerup",up);
+ };
+ document.addEventListener("pointermove",move);
+ document.addEventListener("pointerup",up);
+ e.preventDefault();
+ e.stopPropagation();
+});
+
+
+document.getElementById("groupBtn").addEventListener("click",groupSelected);
+document.getElementById("ungroupBtn").addEventListener("click",ungroupSelected);
+document.getElementById("addNodeBtn").addEventListener("click",addChild);
+document.getElementById("connectBtn").addEventListener("click",e=>{
+ previewConnections=!previewConnections;
+ e.currentTarget.dataset.on=previewConnections?"1":"0";
+ e.currentTarget.classList.toggle("primary",previewConnections);
+ e.currentTarget.textContent="預覽連線";
+ drawConnections();
+ setStatus(previewConnections?"已開啟連線預覽：引線會依父流程圖 → 子孫分支方向流動。":"已關閉連線預覽。" );
+});
+document.getElementById("addBendBtn").addEventListener("click",addBendPoint);
+document.getElementById("deleteConnBtn").addEventListener("click",deleteSelectedConnections);
+document.getElementById("axisBtn").addEventListener("click",()=>{
+ axisVisible=!axisVisible;
+ safeStorage.setItem(KEY+"_axis",axisVisible?"1":"0");
+ if(!axisVisible)hideAlignmentGuides();
+ render();
+ setStatus(axisVisible?"定位軸線已開啟：每10單位一個座標端點，定位點為0、10、20、30…，不再從5開始。":"定位軸線已關閉。");
+});
+document.getElementById("expandAllBtn").addEventListener("click",expandAll);
+document.getElementById("collapseAllBtn").addEventListener("click",collapseAll);
+
+document.getElementById("toolbarToggleBtn").addEventListener("click",()=>{
+ toolbarCollapsed=!toolbarCollapsed;
+ updateLayoutControls();
+});
+document.getElementById("rightPanelToggleBtn").addEventListener("click",()=>{
+ rightPanelCollapsed=!rightPanelCollapsed;
+ updateLayoutControls();
+});
+document.getElementById("fullscreenBtn").addEventListener("click",toggleFullscreen);
+updateLayoutControls();
+updateFullscreenButton();
+
+document.getElementById("themeBtn").addEventListener("click",toggleTheme);
+document.getElementById("appTitle").addEventListener("dblclick",renameProject);
+document.getElementById("renameBtn").addEventListener("click",renameProject);
+document.getElementById("appTitle").addEventListener("click",e=>{if(e.detail===3)renameProject()});
+const savedTheme=safeStorage.getItem(KEY+"_theme");
+theme=(savedTheme==="light"||savedTheme==="dark") ? savedTheme : "dark";
+document.documentElement.dataset.theme=theme;
+document.body.classList.toggle("dark",theme==="dark");
+document.body.classList.toggle("light",theme==="light");
+applyTheme();
+const initialAxisBtn=document.getElementById("axisBtn");
+if(initialAxisBtn)initialAxisBtn.textContent="#定位軸線："+(axisVisible?"開啟":"關閉");
+setAppTitle();updateThemeButton();
+
+document.getElementById("diagram").addEventListener("dblclick",e=>{
+ if(e.target.closest(".flow-node"))return;
+ const rect=document.getElementById("diagram").getBoundingClientRect();
+ const n={id:uid(),name:"新節點",type:"一般",note:"",content:"",children:[]};
+ const x=Math.max(10,e.clientX-rect.left-55),y=Math.max(10,e.clientY-rect.top-25);
+ const parent=findNode(selectedId)?.node||data;
+ parent.children=parent.children||[];parent.children.push(n);
+ positions[n.id]={x,y};selectedId=n.id;saveData();savePositions();render();
+ setStatus("已在你雙擊的位置新增節點。");
+});
+render();
+function handleFileShortcuts(e){
+ const active=document.activeElement;
+ const tag=(e.target?.tagName||"").toLowerCase();
+ const editing=tag==="input"||tag==="textarea"||tag==="select"||active?.isContentEditable;
+ const key=e.key;
+
+ // F2：重新命名。文字編輯欄位內保留原生行為。
+ if(key==="F2"&&!editing){
+  e.preventDefault();
+  renameProject();
+  return;
+ }
+
+ // Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S
+ // 在文字編輯欄位內不攔截，避免破壞使用者輸入。
+ if(editing||!e.ctrlKey||e.altKey)return;
+
+ if(key==="n"||key==="N"){
+  e.preventDefault();
+  newProject();
+  return;
+ }
+ if(key==="o"||key==="O"){
+  e.preventDefault();
+  openProject();
+  return;
+ }
+ // Ctrl+Shift+S 必須先於 Ctrl+S。
+ if((key==="s"||key==="S")&&e.shiftKey){
+  e.preventDefault();
+  saveProject(true);
+  return;
+ }
+ if(key==="s"||key==="S"){
+  e.preventDefault();
+  saveProject(false);
+ }
+}
+
+document.addEventListener("keydown",handleFileShortcuts);
+</script>
+
+<div id="saveSuccessModal" role="dialog" aria-modal="true" aria-labelledby="saveSuccessTitle"><div class="save-success-box"><div id="saveSuccessTitle" class="save-success-title">儲存成功</div><div id="saveSuccessText" class="save-success-text">檔案已成功儲存。</div><button type="button" onclick="closeSaveSuccessModal()">確定</button></div></div>
+</body>
+</html>
