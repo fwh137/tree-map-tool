@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>樹狀圖整理工具_v1.1.5</title>
+<title>樹狀圖整理工具_v1.1.6</title>
 <style>
 :root{
   --bg:#f5f7fb; --panel:#fff; --line:#dce2ea; --text:#202733;
@@ -430,8 +430,8 @@ header>#themeBtn{position:absolute;top:50%;right:20px;z-index:3;transform:transl
 </head>
 <body class="dark">
 <header>
-  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.5</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
-  <span class="badge">v1.1.5</span>
+  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.6</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
+  <span class="badge">v1.1.6</span>
   <div class="toolbar">
     <button id="newFileBtn" type="button" onclick="newProject()">新增檔案</button>
     <button id="openFileBtn" onclick="openProject()">開啟舊檔</button>
@@ -2374,6 +2374,41 @@ document.getElementById("canvasScroll").addEventListener("wheel",e=>{
  applyZoom(zoom*factor,e.clientX,e.clientY);
 },{passive:false});
 
+// 手機／平板：在畫布上以雙指縮放，並維持兩指中點對應的流程圖位置。
+let pinchGesture=null;
+const pinchCanvas=document.getElementById("canvasScroll");
+function touchDistance(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
+function touchCenter(a,b){return {x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2}}
+pinchCanvas.addEventListener("touchstart",e=>{
+ if(e.touches.length!==2)return;
+ const [a,b]=e.touches,center=touchCenter(a,b);
+ pinchGesture={distance:touchDistance(a,b),zoom,panX,panY,center};
+ dragging=null;previewPan=null;
+ pinchCanvas.classList.remove("panning");
+ e.preventDefault();e.stopImmediatePropagation();
+},{capture:true,passive:false});
+pinchCanvas.addEventListener("touchmove",e=>{
+ if(!pinchGesture||e.touches.length!==2)return;
+ const [a,b]=e.touches,center=touchCenter(a,b),ratio=touchDistance(a,b)/pinchGesture.distance;
+ const rect=pinchCanvas.getBoundingClientRect();
+ const worldX=(pinchGesture.center.x-rect.left-pinchGesture.panX)/pinchGesture.zoom;
+ const worldY=(pinchGesture.center.y-rect.top-pinchGesture.panY)/pinchGesture.zoom;
+ zoom=Math.max(.4,Math.min(2.5,pinchGesture.zoom*ratio));
+ panX=(center.x-rect.left)-worldX*zoom;
+ panY=(center.y-rect.top)-worldY*zoom;
+ renderCanvas();
+ e.preventDefault();e.stopImmediatePropagation();
+},{capture:true,passive:false});
+function endPinchGesture(e){
+ if(!pinchGesture)return;
+ if(e.touches&&e.touches.length>1)return;
+ safeStorage.setItem(KEY+"_zoom",String(zoom));
+ setStatus("縮放："+Math.round(zoom*100)+"%");
+ pinchGesture=null;
+}
+pinchCanvas.addEventListener("touchend",endPinchGesture,{capture:true,passive:false});
+pinchCanvas.addEventListener("touchcancel",endPinchGesture,{capture:true,passive:false});
+
 // 套用子分支：使用 document 捕獲階段攔截目標流程圖。
 // 這樣點標題、類型、方框空白處都會先被辨識，不會被流程圖拖曳或 canvas 事件吃掉。
 document.addEventListener("pointerdown",e=>{
@@ -2418,6 +2453,7 @@ document.addEventListener("pointerdown",e=>{
 let previewPan=null,previewLastTap=null;
 const previewCanvas=document.getElementById("canvasScroll");
 previewCanvas.addEventListener("pointerdown",e=>{
+ if(pinchGesture)return;
  if(!previewConnections||e.button!==0)return;
  const node=e.target.closest?.(".flow-node");
  previewPan={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,panX,panY,nodeId:node?.dataset.id||null,moved:false};
@@ -2451,6 +2487,7 @@ previewCanvas.addEventListener("dblclick",e=>{
 },true);
 
 document.getElementById("canvasScroll").addEventListener("pointerdown",e=>{
+ if(pinchGesture)return;
  if(e.button!==0)return;
  const target=e.target;
  if(target.closest?.(".flow-node")||target.closest?.(".bend-point")||target.closest?.(".conn"))return;
