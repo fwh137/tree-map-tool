@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>樹狀圖整理工具_v1.0.7</title>
+<title>樹狀圖整理工具_v1.1.5</title>
 <style>
 :root{
   --bg:#f5f7fb; --panel:#fff; --line:#dce2ea; --text:#202733;
@@ -341,6 +341,80 @@ body.app-fullscreen-fallback .editor-layout{position:fixed;inset:0;z-index:10000
 body.app-fullscreen-fallback .canvas-panel{height:100vh}
 body.app-fullscreen-fallback .right{display:none}
 
+/* v1.0.9：預覽唯讀與直向行動裝置版面。畫布可縮放，UI 不跟著縮放。 */
+body.preview-readonly .flow-node,
+body.preview-readonly .conn,
+body.preview-readonly .bend-point{cursor:grab!important}
+body.preview-readonly .flow-node:active{cursor:grabbing!important}
+body.preview-readonly .handle{pointer-events:none!important}
+button:disabled{cursor:not-allowed;opacity:.48}
+
+@media (max-width:1024px) and (orientation:portrait){
+ html,body{width:100%;min-height:100%;min-height:100dvh;overflow:hidden}
+ body{display:grid;grid-template-rows:auto minmax(0,1fr);height:100dvh;height:100svh}
+ header{height:auto;min-height:58px;flex-wrap:wrap;align-content:center;gap:7px;padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 8px max(10px,env(safe-area-inset-left));overflow:visible}
+ .logo{min-width:0;flex:1 1 auto}.logo .app-title{overflow:hidden;text-overflow:ellipsis}.badge{flex:0 0 auto}
+ .toolbar{order:3;flex:1 0 100%;width:100%;padding:2px 0 5px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+ .toolbar button{flex:0 0 auto;scroll-snap-align:start;min-height:40px}
+ .editor-layout,.editor-layout.right-collapsed{height:auto;min-height:0;grid-template-columns:minmax(0,1fr) 38px}
+ .canvas-panel{min-height:0}.canvas-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding:8px max(10px,env(safe-area-inset-right)) 8px max(10px,env(safe-area-inset-left))}
+ .canvas-toolbar>*{flex:0 0 auto}.canvas-toolbar .tip{display:none}
+ .right{display:block!important;min-width:0;padding:0;overflow:hidden}
+ .editor-layout.right-collapsed .right{position:relative;border-left:1px solid var(--line)}
+ .editor-layout:not(.right-collapsed) .right{position:fixed;z-index:1002;left:0;right:0;bottom:0;height:min(72dvh,650px);padding:18px max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));overflow:auto;border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgba(15,23,42,.18)}
+ .editor-layout:not(.right-collapsed) .right-panel-head{position:sticky;top:-18px;z-index:2;margin:-8px 0 12px;padding:8px 0;background:inherit;justify-content:space-between}.editor-layout:not(.right-collapsed) .right-panel-title{display:block;font-weight:700}
+ .editor-layout:not(.right-collapsed) .right-panel-toggle{min-height:38px}
+ .canvas-ui-bar{height:auto;min-height:44px;padding-bottom:env(safe-area-inset-bottom)}.canvas-ui-bar .canvas-status{height:auto;min-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.canvas-fullscreen-btn{min-height:34px}
+ #saveSuccessModal{padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+ #saveSuccessModal .save-success-box{max-width:100%;min-width:0}
+}
+
+/* v1.1.3：手機／平板橫向模式的工具列與右側浮動設定欄 */
+@media (max-width:1024px) and (orientation:landscape){
+ html,body{width:100%;height:100%;height:100dvh;overflow:hidden}
+ header{height:58px;min-height:58px;padding:8px max(10px,env(safe-area-inset-right)) 8px max(10px,env(safe-area-inset-left));gap:7px;flex-wrap:nowrap;overflow:hidden}
+ .logo{min-width:0;flex:0 1 auto}.logo .app-title{overflow:hidden;text-overflow:ellipsis}
+ .badge{flex:0 0 auto}
+ .toolbar{order:initial;flex:1 1 auto;width:auto;min-width:0;padding:2px 0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+ .toolbar button{flex:0 0 auto;scroll-snap-align:start;min-height:38px}
+ #themeBtn{flex:0 0 auto;position:sticky;right:0;z-index:2}
+ .editor-layout,.editor-layout.right-collapsed{height:calc(100dvh - 58px);min-height:0;grid-template-columns:minmax(0,1fr) 38px}
+ .canvas-panel{min-width:0;min-height:0}
+ .canvas-toolbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+ .canvas-toolbar>*{flex:0 0 auto}.canvas-toolbar .tip{display:none}
+ .right{display:block!important;min-width:0;padding:0;overflow:hidden}
+ .editor-layout.right-collapsed .right{position:relative;border-left:1px solid var(--line)}
+ .editor-layout:not(.right-collapsed) .right{position:fixed;z-index:1002;top:58px;right:0;left:auto;bottom:0;width:min(88vw,480px);height:calc(100dvh - 58px);max-width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));padding:14px max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) 14px;overflow:auto;border:1px solid var(--line);border-right:0;border-radius:16px 0 0 16px;box-shadow:-10px 0 30px rgba(15,23,42,.18)}
+ .editor-layout:not(.right-collapsed) .right-panel-head{position:sticky;top:-14px;z-index:2;margin:-6px 0 12px;padding:8px 0;background:inherit;justify-content:space-between}
+ .editor-layout:not(.right-collapsed) .right-panel-title{display:block;font-weight:700}
+ .editor-layout:not(.right-collapsed) .right-panel-toggle{min-height:38px}
+ .right input,.right textarea,.right select{max-width:100%;min-width:0}
+}
+
+/* 月亮按鈕獨立固定在頁首右上角，避免隨檔案工具列捲動。 */
+header{position:relative}
+header>.toolbar{flex:1 1 auto;padding-right:54px}
+header>#themeBtn{position:absolute;top:50%;right:20px;z-index:3;transform:translateY(-50%);margin:0}
+@media (max-width:1024px) and (orientation:portrait){
+ header{padding-right:max(58px,calc(10px + env(safe-area-inset-right)))}
+ header>#themeBtn{right:max(10px,env(safe-area-inset-right))}
+}
+@media (max-width:1024px) and (orientation:landscape){
+ header>#themeBtn{position:absolute;top:50%;right:max(10px,env(safe-area-inset-right));transform:translateY(-50%)}
+}
+
+/* 預覽連線固定在流程圖工具列右側，且限於畫布區，不會覆蓋右側設定欄。 */
+.canvas-panel{position:relative}
+.canvas-toolbar{padding-right:118px}
+#connectBtn{position:absolute;top:8px;right:12px;z-index:12;margin:0;white-space:nowrap}
+@media (max-width:1024px) and (orientation:portrait){
+ .canvas-toolbar{padding-right:118px}
+ #connectBtn{right:max(10px,env(safe-area-inset-right))}
+}
+/* 手機友善的單獨引線選取模式：節點不攔截點擊，引線有較大的透明命中區。 */
+.conn-hit{fill:none;stroke:transparent;stroke-width:28px;pointer-events:stroke;cursor:pointer}
+.diagram.connection-select-mode .flow-node,.diagram.connection-select-mode .bend-point{pointer-events:none}
+.diagram.connection-select-mode .conn{cursor:pointer}
 </style>
 
 <style id="saveSuccessModalStyle">
@@ -356,17 +430,18 @@ body.app-fullscreen-fallback .right{display:none}
 </head>
 <body class="dark">
 <header>
-  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.0.7</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
-  <span class="badge">v1.0.7</span>
+  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.5</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
+  <span class="badge">v1.1.5</span>
   <div class="toolbar">
     <button id="newFileBtn" type="button" onclick="newProject()">新增檔案</button>
-    <button onclick="openProject()">開啟舊檔</button>
-    <button onclick="saveProject(false)">儲存檔案</button>
-    <button onclick="saveProject(true)">另存新檔</button>
-    <button class="history-icon-btn" onclick="undo()" title="返回（Ctrl+Z）" aria-label="返回（Ctrl+Z）">↶</button>
-    <button class="history-icon-btn" onclick="redo()" title="恢復（Ctrl+Y）" aria-label="恢復（Ctrl+Y）">↷</button>
+    <button id="openFileBtn" onclick="openProject()">開啟舊檔</button>
+    <button id="saveFileBtn" onclick="saveProject(false)">儲存檔案</button>
+    <button id="saveAsFileBtn" onclick="saveProject(true)">另存新檔</button>
+    <button id="undoBtn" class="history-icon-btn" onclick="undo()" title="返回（Ctrl+Z）" aria-label="返回（Ctrl+Z）">↶</button>
+    <button id="redoBtn" class="history-icon-btn" onclick="redo()" title="恢復（Ctrl+Y）" aria-label="恢復（Ctrl+Y）">↷</button>
     <input id="fileInput" type="file" accept=".json" style="display:none" onchange="openProjectFromFile(event)">
   </div>
+  <button id="themeBtn" class="icon-btn" type="button" title="切換深淺模式" aria-label="切換深淺模式">☀️</button>
 </header>
 
 <div class="editor-layout">
@@ -377,14 +452,14 @@ body.app-fullscreen-fallback .right{display:none}
       <button id="axisBtn" type="button">#定位軸線：關閉</button>
       <button id="deleteConnBtn" type="button">del選取引線</button>
       <button id="addBendBtn" type="button">┌新增轉彎點</button>
+      <button id="selectConnBtn" type="button" aria-pressed="false">單獨選取引線</button>
       <button id="groupBtn" type="button">✓群組</button>
       <button id="ungroupBtn" type="button">✗取消群組</button>
-      <button id="connectBtn" type="button">預覽連線</button>
-      <button id="themeBtn" class="icon-btn" type="button" title="切換深淺模式" aria-label="切換深淺模式">☀️</button>
       <button id="expandAllBtn" type="button">all展開</button>
       <button id="collapseAllBtn" type="button">all收合</button>
       <span class="tip">拖曳流程圖移動　｜　Ctrl+左鍵多選　｜　Shift+左鍵父子範圍　｜　流程圖連點兩下展開／收合　｜　從 ● 拉線</span>
         </div>
+    <button id="connectBtn" type="button">預覽連線</button>
     <div class="canvas-scroll" id="canvasScroll" tabindex="0" aria-label="流程圖畫布">
       <div class="coord-layer" id="coordLayer" aria-hidden="true">
           <div class="coord-grid"></div>
@@ -452,7 +527,7 @@ const hasStoredProject=!!safeStorage.getItem(KEY+"_data");
 let data=loadData();
 if(!hasStoredProject){
  safeStorage.setItem(KEY+"_data",JSON.stringify(data));
- safeStorage.setItem(KEY+"_filename","樹狀圖整理工具_v1.0.7.json");
+ safeStorage.setItem(KEY+"_filename","樹狀圖整理工具_v1.0.9.json");
 }
 let selectedId=data.id;
 let selectedIds=[data.id]; // 選取順序；第一個是 Shift 範圍選取的起點。
@@ -464,6 +539,7 @@ let collapsedIds=loadCollapsedIds();
 collapsedIds.delete(data.id);
 let applyFlowchartMode=false;
 let previewConnections=false;
+let connectionSelectMode=false;
 let applyFlowchartSourceId=null;
 const undoStack=[],redoStack=[];
 let restoringHistory=false;
@@ -652,7 +728,7 @@ if(!Number.isFinite(zoom)||zoom<0.4||zoom>2.5)zoom=1;
 let panX=0,panY=0;
 let currentFileHandle=null;
 let connectionDragActive=false;
-let currentFileName=(safeStorage.getItem(KEY+"_filename")||"樹狀圖整理工具_v1.0.7.json");
+let currentFileName=(safeStorage.getItem(KEY+"_filename")||"樹狀圖整理工具_v1.0.9.json");
 
 function loadData(){try{const x=JSON.parse(safeStorage.getItem(KEY+"_data"));if(x&&x.children)return x}catch(e){}return JSON.parse(JSON.stringify(seed))}
 function saveData(){safeStorage.setItem(KEY+"_data",JSON.stringify(data))}
@@ -972,15 +1048,23 @@ function drawConnections(){
   const d=connectionPath(c);if(!d)return;
   const p=document.createElementNS("http://www.w3.org/2000/svg","path");
   p.setAttribute("d",d);
-  p.setAttribute("class","conn"+(selectedConnIds.has(c.id)||selectedConn===c.id?" selected":"")+(previewConnections?" previewing":""));
-  p.dataset.id=c.id;
-  p.addEventListener("click",e=>{
-   e.stopPropagation();
-   selectedConn=c.id;
-   setStatus("已選取引線："+(nodeById(c.from)?.name||c.from)+" → "+(nodeById(c.to)?.name||c.to));
-   drawConnections();
-  });
-  svg.appendChild(p);
+   p.setAttribute("class","conn"+(selectedConnIds.has(c.id)||selectedConn===c.id?" selected":"")+(previewConnections?" previewing":""));
+   p.dataset.id=c.id;
+   const selectThisConnection=e=>{
+    e.stopPropagation();
+    selectedConnIds.clear();
+    selectedConn=c.id;
+    setStatus("已選取引線："+(nodeById(c.from)?.name||c.from)+" → "+(nodeById(c.to)?.name||c.to));
+    drawConnections();
+   };
+   p.addEventListener("click",selectThisConnection);
+   if(connectionSelectMode){
+    const hit=document.createElementNS("http://www.w3.org/2000/svg","path");
+    hit.setAttribute("d",d);hit.setAttribute("class","conn-hit");hit.dataset.id=c.id;
+    hit.addEventListener("click",selectThisConnection);
+    svg.appendChild(hit);
+   }
+   svg.appendChild(p);
   (c.bends||[]).forEach((b,i)=>{
    const bp=document.createElementNS("http://www.w3.org/2000/svg","circle");
    bp.setAttribute("cx",b.x);bp.setAttribute("cy",b.y);bp.setAttribute("r",5);
@@ -1602,7 +1686,8 @@ function renderEditor(){
  '<div class="field"><label>詳細資料</label><textarea id="fContent">'+esc(n.content||"")+'</textarea></div>'+
  '<div class="field"><label>節點位置 X / Y（全域10單位軸線端點）</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input id="fX" type="number" value="'+Math.round(p.x)+'"><input id="fY" type="number" value="'+Math.round(p.y)+'"></div></div>'+
  '<div class="actions"><button class="primary" onclick="saveNode()">儲存修改</button><button class="primary" onclick="duplicateNode()">複製流程圖</button><button id="applySubbranchBtn" onclick="startApplyFlowchart()" aria-pressed="false">套用子分支</button><button class="danger" onclick="removeNode()">流程圖刪除</button></div>'+
- '<div class="help">節點與引線轉彎點共用全域10單位座標系：流程圖左上角定位端點與引線轉彎點本身都吸附到背景定位點上的軸線端點（全域10單位，0、10、20、30…）；「複製流程圖」只複製目前流程圖；「套用子分支」會將下一個點選流程圖的所有子分支套用到目前選取的流程圖，來源本身不複製，並複製相關引線；流程圖連點兩下可展開／收合所有子孫分支；沒有有效父引線的新增／複製流程圖視為獨立父流程；節點四邊都有隱形連線點；只有拉引線時才顯示；點擊引線後可刪除；選取引線後可連續新增轉彎點。新增分支會立即出現，每個節點都有自己的座標。</div>';
+  '<div class="help">節點與引線轉彎點共用全域10單位座標系：流程圖左上角定位端點與引線轉彎點本身都吸附到背景定位點上的軸線端點（全域10單位，0、10、20、30…）；「複製流程圖」只複製目前流程圖；「套用子分支」會將下一個點選流程圖的所有子分支套用到目前選取的流程圖，來源本身不複製，並複製相關引線；流程圖連點兩下可展開／收合所有子孫分支；沒有有效父引線的新增／複製流程圖視為獨立父流程；節點四邊都有隱形連線點；只有拉引線時才顯示；點擊引線後可刪除；選取引線後可連續新增轉彎點。新增分支會立即出現，每個節點都有自己的座標。</div>';
+ if(previewConnections)setPreviewReadOnlyUI();
 }
 function saveNode(){
  const r=findNode(selectedId);if(!r)return;
@@ -1999,10 +2084,10 @@ function setStatus(t){document.getElementById("canvasStatus").textContent=t}
 
 
 function baseFileName(name){
- return String(name||"樹狀圖整理工具_v1.0.7.json").replace(/\.[^.]+$/,"");
+ return String(name||"樹狀圖整理工具_v1.0.9.json").replace(/\.[^.]+$/,"");
 }
 function setFileName(name){
- const clean=String(name||"樹狀圖整理工具_v1.0.7.json").trim()||"樹狀圖整理工具_v1.0.7.json";
+ const clean=String(name||"樹狀圖整理工具_v1.0.9.json").trim()||"樹狀圖整理工具_v1.0.9.json";
  currentFileName=/\.[^.]+$/.test(clean)?clean:clean+".json";
  safeStorage.setItem(KEY+"_filename",currentFileName);
  const el=document.getElementById("appTitle");
@@ -2021,7 +2106,7 @@ function projectPayload(){
 function downloadProject(filename){
  const blob=new Blob([JSON.stringify(projectPayload(),null,2)],{type:"application/json;charset=utf-8"});
  const a=document.createElement("a");
- a.href=URL.createObjectURL(blob);a.download=filename||currentFileName||"樹狀圖整理工具_v1.0.7.json";
+ a.href=URL.createObjectURL(blob);a.download=filename||currentFileName||"樹狀圖整理工具_v1.0.9.json";
  document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
@@ -2044,7 +2129,7 @@ function closeSaveSuccessModal(){
 }
 
 async function saveProject(saveAs){
- const defaultName=currentFileName||"樹狀圖整理工具_v1.0.7.json";
+ const defaultName=currentFileName||"樹狀圖整理工具_v1.0.9.json";
 
  // 「儲存檔案」= 直接儲存目前檔案；只有「另存新檔」才要求選擇新位置。
  if(!saveAs){
@@ -2211,10 +2296,10 @@ function newProject(){
  applyFlowchartMode=false;
  applyFlowchartSourceId=null;
  currentFileHandle=null;
- setFileName("樹狀圖整理工具_v1.0.7.json");
+ setFileName("樹狀圖整理工具_v1.0.9.json");
  render();
  updateThemeButton();
- setStatus("已建立新檔案：樹狀圖整理工具_v1.0.7.json。");
+ setStatus("已建立新檔案：樹狀圖整理工具_v1.0.9.json。");
 }
 async function openProject(){
  // 優先使用 File System Access API，取得原檔案 handle，
@@ -2328,6 +2413,43 @@ document.addEventListener("pointerdown",e=>{
  if(ok)cancelApplyFlowchart();
 },true);
 
+// 預覽連線是「看圖」模式：不論按到節點、引線或折點，都交給畫布平移。
+// 在 capture 階段攔截，能確實避開節點／引線原本的編輯拖曳監聽器。
+let previewPan=null,previewLastTap=null;
+const previewCanvas=document.getElementById("canvasScroll");
+previewCanvas.addEventListener("pointerdown",e=>{
+ if(!previewConnections||e.button!==0)return;
+ const node=e.target.closest?.(".flow-node");
+ previewPan={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,panX,panY,nodeId:node?.dataset.id||null,moved:false};
+ previewCanvas.classList.add("panning");
+ try{previewCanvas.setPointerCapture(e.pointerId)}catch(_){ }
+ e.preventDefault();e.stopImmediatePropagation();
+},true);
+previewCanvas.addEventListener("pointermove",e=>{
+ if(!previewPan||e.pointerId!==previewPan.pointerId)return;
+ const dx=e.clientX-previewPan.startX,dy=e.clientY-previewPan.startY;
+ if(Math.hypot(dx,dy)>6)previewPan.moved=true;
+ panX=previewPan.panX+dx;panY=previewPan.panY+dy;renderCanvas();
+ e.preventDefault();e.stopImmediatePropagation();
+},true);
+previewCanvas.addEventListener("pointerup",e=>{
+ if(!previewPan||e.pointerId!==previewPan.pointerId)return;
+ const finished=previewPan;previewPan=null;
+ previewCanvas.classList.remove("panning");
+ try{previewCanvas.releasePointerCapture(e.pointerId)}catch(_){ }
+ if(!finished.moved&&finished.nodeId){
+  const now=performance.now();
+  const isDouble=previewLastTap&&previewLastTap.id===finished.nodeId&&(now-previewLastTap.time)<=450;
+  if(isDouble){previewLastTap=null;toggleSubtree(finished.nodeId);}
+  else previewLastTap={id:finished.nodeId,time:now};
+ }
+ e.preventDefault();e.stopImmediatePropagation();
+},true);
+previewCanvas.addEventListener("pointercancel",()=>{previewPan=null;previewCanvas.classList.remove("panning");},true);
+previewCanvas.addEventListener("dblclick",e=>{
+ if(previewConnections&&e.target.closest?.(".flow-node")){e.preventDefault();e.stopImmediatePropagation();}
+},true);
+
 document.getElementById("canvasScroll").addEventListener("pointerdown",e=>{
  if(e.button!==0)return;
  const target=e.target;
@@ -2368,14 +2490,45 @@ document.getElementById("canvasScroll").addEventListener("pointerdown",e=>{
 });
 
 
+// 所有會改資料的入口在預覽時都加上程式層防護；不只靠按鈕變灰。
+function previewEditAllowed(){
+ if(!previewConnections)return true;
+ setStatus("預覽連線已開啟：目前為唯讀模式。可拖曳平移畫布，或雙擊流程圖展開／收合。");
+ return false;
+}
+function setPreviewReadOnlyUI(){
+ document.body.classList.toggle("preview-readonly",previewConnections);
+ const ids=["newFileBtn","openFileBtn","saveFileBtn","saveAsFileBtn","undoBtn","redoBtn","renameBtn","addNodeBtn","deleteConnBtn","addBendBtn","selectConnBtn","groupBtn","ungroupBtn","expandAllBtn","collapseAllBtn"];
+ ids.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=previewConnections;});
+ document.querySelectorAll("#editor input,#editor textarea,#editor select,#editor button,#fileInput").forEach(el=>el.disabled=previewConnections);
+ if(previewConnections)cancelApplyFlowchart();
+}
+for(const name of ["groupSelected","ungroupSelected","addChild","deleteSelectedConnections","addBendPoint","saveNode","duplicateNode","startApplyFlowchart","removeNode","newProject","openProject","saveProject","renameProject","undo","redo","openProjectFromFile","readProjectFile","applyPosition"]){
+ const original=window[name];
+ if(typeof original==="function")window[name]=function(...args){if(!previewEditAllowed())return false;return original.apply(this,args);};
+}
+
 document.getElementById("groupBtn").addEventListener("click",groupSelected);
 document.getElementById("ungroupBtn").addEventListener("click",ungroupSelected);
 document.getElementById("addNodeBtn").addEventListener("click",addChild);
+function setConnectionSelectMode(next){
+ connectionSelectMode=next;
+ const b=document.getElementById("selectConnBtn");
+ const diagram=document.getElementById("diagram");
+ b.classList.toggle("primary",connectionSelectMode);
+ b.setAttribute("aria-pressed",String(connectionSelectMode));
+ diagram.classList.toggle("connection-select-mode",connectionSelectMode);
+ drawConnections();
+ setStatus(connectionSelectMode?"已開啟單獨選取引線：可直接點選任一引線，流程圖節點暫時不會攔截點擊。":"已關閉單獨選取引線。");
+}
+document.getElementById("selectConnBtn").addEventListener("click",()=>setConnectionSelectMode(!connectionSelectMode));
 document.getElementById("connectBtn").addEventListener("click",e=>{
  previewConnections=!previewConnections;
+ if(previewConnections&&connectionSelectMode)setConnectionSelectMode(false);
  e.currentTarget.dataset.on=previewConnections?"1":"0";
  e.currentTarget.classList.toggle("primary",previewConnections);
  e.currentTarget.textContent="預覽連線";
+ setPreviewReadOnlyUI();
  drawConnections();
  setStatus(previewConnections?"已開啟連線預覽：引線會依父流程圖 → 子孫分支方向流動。":"已關閉連線預覽。" );
 });
@@ -2400,6 +2553,7 @@ document.getElementById("rightPanelToggleBtn").addEventListener("click",()=>{
  updateLayoutControls();
 });
 document.getElementById("fullscreenBtn").addEventListener("click",toggleFullscreen);
+if(window.matchMedia("(max-width:1024px) and (orientation:portrait)").matches)rightPanelCollapsed=true;
 updateLayoutControls();
 updateFullscreenButton();
 
