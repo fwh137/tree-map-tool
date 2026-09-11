@@ -428,7 +428,7 @@ header>#themeBtn{position:absolute;top:50%;right:20px;z-index:3;transform:transl
 #saveSuccessModal button{padding:7px 20px}
 </style>
 <style id="v118-preview-pinch-fix">
-/* v1.1.8：預覽連線的雙指縮放不可選取流程圖／文字 */
+/* v1.1.9：預覽連線的雙指縮放不可選取流程圖／文字 */
 body.preview-readonly,
 body.preview-readonly #canvasScroll,
 body.preview-readonly #diagram,
@@ -438,13 +438,19 @@ body.preview-readonly #diagram *{
   -webkit-touch-callout:none !important;
 }
 body.preview-readonly #canvasScroll{touch-action:none !important}
+body.preview-readonly .flow-node .handle,
+body.preview-readonly .bend-point{pointer-events:none !important}
+body.preview-readonly .conn,
+body.preview-readonly .conn-hit{pointer-events:none !important}
+body.preview-readonly .flow-node{cursor:grab !important}
+body.preview-readonly .flow-node:active{cursor:grabbing !important}
 </style>
 
 </head>
 <body class="dark">
 <header>
-  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.8</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
-  <span class="badge">v1.1.8</span>
+  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.9</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
+  <span class="badge">v1.1.9</span>
   <div class="toolbar">
     <button id="newFileBtn" type="button" onclick="newProject()">新增檔案</button>
     <button id="openFileBtn" onclick="openProject()">開啟舊檔</button>
@@ -679,6 +685,7 @@ function redo(){
  setStatus("已恢復下一個操作。");
 }
 function handleHistoryKeydown(e){
+ if(previewConnections)return;
  if((e.ctrlKey||e.metaKey)&&!e.altKey){
   const k=e.key.toLowerCase();
   if(k==="z"){e.preventDefault();undo();return}
@@ -688,6 +695,7 @@ function handleHistoryKeydown(e){
 document.addEventListener("keydown",handleHistoryKeydown);
 
 function handleCanvasSelectionKeydown(e){
+ if(previewConnections)return;
  if(!(e.ctrlKey||e.metaKey)||e.altKey||e.key.toLowerCase()!=="a")return;
  const canvas=document.getElementById("canvasScroll");
  const active=document.activeElement;
@@ -706,6 +714,7 @@ function handleCanvasSelectionKeydown(e){
 }
 document.addEventListener("keydown",handleCanvasSelectionKeydown);
 function handleDeleteKeydown(e){
+ if(previewConnections)return;
  if(e.key!=="Delete"||e.ctrlKey||e.metaKey||e.altKey)return;
  const active=document.activeElement;
  const tag=active?.tagName?.toLowerCase();
@@ -993,6 +1002,13 @@ function renderCanvas(){
    e.preventDefault();e.stopPropagation();toggleSubtree(n.id);
   });
   el.addEventListener("pointerdown",e=>{
+   // 預覽連線模式是完全唯讀的：節點不可選取、不可拖曳、不可拉引線。
+   // 雙擊展開／收合仍由上方 dblclick 保留。
+   if(previewConnections){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return;
+   }
    if(applyFlowchartMode){applyFlowchartAtEvent(e);return;}
    onNodeDown(e);
   });
@@ -1064,6 +1080,11 @@ function drawConnections(){
    p.setAttribute("class","conn"+(selectedConnIds.has(c.id)||selectedConn===c.id?" selected":"")+(previewConnections?" previewing":""));
    p.dataset.id=c.id;
    const selectThisConnection=e=>{
+    if(previewConnections){
+     e.preventDefault();
+     e.stopImmediatePropagation();
+     return;
+    }
     e.stopPropagation();
     selectedConnIds.clear();
     selectedConn=c.id;
@@ -1249,6 +1270,11 @@ let nodeSingleClickTimer=null;
 let suppressNextNodeDblClick=false;
 
 function onNodeDown(e){
+ if(previewConnections){
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  return;
+ }
  if(e.button!==0)return;
  const node=e.currentTarget,id=node.dataset.id;
  if(applyFlowchartMode){
@@ -1296,6 +1322,10 @@ function onNodeDown(e){
  e.preventDefault();
 }
 document.addEventListener("pointermove",e=>{
+ if(previewConnections){
+  dragging=null;
+  return;
+ }
  if(!dragging)return;
  if(lastNodeTap && Math.hypot(e.clientX-dragging.startX,e.clientY-dragging.startY)>8){
   lastNodeTap=null;
@@ -1351,6 +1381,10 @@ document.addEventListener("pointermove",e=>{
 
 
 document.addEventListener("pointerup",e=>{
+ if(previewConnections){
+  dragging=null;
+  return;
+ }
  if(dragging){
   // 拖曳流程圖只改變流程圖的位置。
   // 絕對不要因為拖曳位置而交換流程圖、重新指定引線端點或自動切換節點邊。
@@ -1405,6 +1439,7 @@ document.addEventListener("pointerout",e=>{
 
 
 function addBendPoint(){
+ if(previewConnections)return previewEditAllowed();
  if(!selectedConn){setStatus("請先選取一條引線。");return}
  const c=connections.find(x=>x.id===selectedConn);if(!c)return;
  const a=anchorPoint(c.from,c.fromSide||"right"),b=anchorPoint(c.to,c.toSide||"left");
@@ -1427,6 +1462,11 @@ function hideBendGridAnchor(){
 }
 
 function startBendDrag(e){
+ if(previewConnections){
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  return;
+ }
  const conn=connections.find(c=>c.id===e.currentTarget.dataset.conn);
  if(!conn)return;
  const i=Number(e.currentTarget.dataset.index);
@@ -1540,6 +1580,11 @@ function updateHierarchyForDeletedConnections(deletedConnections){
 }
 
 function startConnection(e,from,side){
+ if(previewConnections){
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  return;
+ }
  if(connectionDragActive)return;
  connectionDragActive=true;
  document.getElementById("tempConnection")?.remove();
@@ -2601,6 +2646,27 @@ function previewEditAllowed(){
 }
 function setPreviewReadOnlyUI(){
  document.body.classList.toggle("preview-readonly",previewConnections);
+ if(previewConnections){
+  // 進入預覽的瞬間，立即中止任何正在進行的編輯手勢，並清掉既有選取。
+  dragging=null;
+  previewPan=null;
+  pinchGesture=null;
+  previewPinchActive=false;
+  previewSuppressClickUntil=performance.now()+500;
+  connectionDragActive=false;
+  document.getElementById("tempConnection")?.remove();
+  document.querySelectorAll(".flow-node.connection-ready,.flow-node.connection-target").forEach(el=>el.classList.remove("connection-ready","connection-target"));
+  document.querySelectorAll(".handle.connection-target-handle").forEach(el=>el.classList.remove("connection-target-handle"));
+  selectedIds=[];
+  selectedId=data.id;
+  selectedConn=null;
+  selectedConnIds.clear();
+  allCanvasSelected=false;
+  hideAlignmentGuides();
+  hideNodeGridAnchor();
+  hideBendGridAnchor();
+  clearBrowserSelection();
+ }
  const ids=["newFileBtn","openFileBtn","saveFileBtn","saveAsFileBtn","undoBtn","redoBtn","renameBtn","addNodeBtn","deleteConnBtn","addBendBtn","selectConnBtn","groupBtn","ungroupBtn","expandAllBtn","collapseAllBtn"];
  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=previewConnections;});
  document.querySelectorAll("#editor input,#editor textarea,#editor select,#editor button,#fileInput").forEach(el=>el.disabled=previewConnections);
@@ -2675,6 +2741,11 @@ if(initialAxisBtn)initialAxisBtn.textContent="#定位軸線："+(axisVisible?"�
 setAppTitle();updateThemeButton();
 
 document.getElementById("diagram").addEventListener("dblclick",e=>{
+ if(previewConnections){
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  return;
+ }
  if(e.target.closest(".flow-node"))return;
  const rect=document.getElementById("diagram").getBoundingClientRect();
  const n={id:uid(),name:"新節點",type:"一般",note:"",content:"",children:[]};
