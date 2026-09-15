@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>樹狀圖整理工具_v1.1.7</title>
+<title>樹狀圖整理工具_v1.1.40</title>
 <style>
 :root{
   --bg:#f5f7fb; --panel:#fff; --line:#dce2ea; --text:#202733;
@@ -39,12 +39,18 @@ textarea{resize:vertical;min-height:120px}
 .children>.branch{position:relative}
 .children>.branch:before{content:"";position:absolute;left:-17px;top:21px;width:16px;border-top:1px solid #cbd5e1}
 .empty-state{padding:50px;text-align:center;color:var(--muted)}
-.right{background:#fff;overflow:auto;padding:22px}
+.right{background:var(--panel);overflow:auto;padding:22px 22px 110px}
 .panel-title{font-size:18px;font-weight:800;margin-bottom:18px}
 .field{margin-bottom:15px}
 .field label{display:block;font-size:12px;font-weight:700;color:#4b5563;margin-bottom:6px}
 .hint{font-size:12px;color:var(--muted);line-height:1.6}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;position:sticky;bottom:0;z-index:20;padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--line)}
+.actions>.format-actions{margin-top:0}
+button.danger{background:#dc2626!important;border-color:#dc2626!important;color:#fff!important}
+button.danger:hover{background:#b91c1c!important;border-color:#b91c1c!important;color:#fff!important}
+.format-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;grid-column:1/-1}
+.format-actions button{min-width:0;width:100%;}
+@media(max-width:520px){.format-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.format-actions button{font-size:12px;padding:8px 4px}}
 .full{grid-column:1/-1}
 .stat{margin-top:20px;padding:12px;background:#f8fafc;border-radius:10px;font-size:12px;color:#64748b}
 mark{background:#fef08a;border-radius:2px}
@@ -122,6 +128,12 @@ mark{background:#fef08a;border-radius:2px}
 
 
 /* v0.2.0：自由定位節點＋滑鼠拉線 */
+/* v1.1.34：左側獨立功能欄；按鈕不受畫布縮放影響 */
+.editor-layout{grid-template-columns:52px minmax(0,1fr) 360px}
+.function-rail{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:8px 6px;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;overflow-x:hidden;z-index:5}
+.function-rail .rail-title{font-size:12px;font-weight:700;writing-mode:vertical-rl;text-orientation:mixed;text-align:center;align-self:center;color:var(--text);padding:5px 0 8px;letter-spacing:1px}
+.function-rail button{width:40px;min-height:38px;padding:5px 2px;white-space:normal;line-height:1.2;font-size:12px;display:flex;align-items:center;justify-content:center;text-align:center}
+@media(max-width:900px){.editor-layout{grid-template-columns:48px minmax(0,1fr) 38px}.function-rail{padding:7px 4px;gap:6px}.function-rail button{width:40px;font-size:11px}.editor-layout:not(.right-collapsed) .right{grid-column:1 / -1}}
 .editor-layout{height:calc(100vh - 60px);display:grid;grid-template-columns:minmax(700px,1fr) 360px}
 .canvas-panel{min-width:0;min-height:0;background:#fff;display:grid;grid-template-rows:auto minmax(0,1fr) 36px;position:relative}
 .canvas-toolbar{min-width:0;min-height:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid #e5e7eb;background:#fff}
@@ -140,6 +152,34 @@ mark{background:#fef08a;border-radius:2px}
 .flow-node:active{cursor:grabbing}
 .flow-node.selected{border:2px solid #6366f1;padding:11px 16px}
 .flow-node.grouped::after{content:"群";position:absolute;right:-7px;top:-7px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:#64748b;color:#fff;font:700 9px/16px Arial,sans-serif;text-align:center;pointer-events:none}
+/* v1.1.21：判斷菱形與純文字說明圖塊 */
+.flow-node.decision-node{
+  min-width:118px;min-height:78px;max-width:210px;
+  padding:0;background:transparent;border:0;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:0;
+}
+.flow-node.decision-node::before{
+  content:"";position:absolute;inset:7px 14px;
+  background:#fff;border:2px solid #64748b;
+  transform:rotate(45deg);border-radius:5px;
+  z-index:0;
+}
+.flow-node.decision-node .node-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:110px;text-align:center}
+.flow-node.decision-node .dn-name{font-size:13px;line-height:1.25}
+.flow-node.decision-node .dn-type{font-size:9px;margin-top:2px}
+.flow-node.text-node{
+  min-width:48px;max-width:240px;padding:5px 9px;
+  background:#fff7ed;border:1px dashed #f59e0b;border-radius:5px;
+  box-shadow:none;
+}
+.flow-node.text-node .dn-name{font-size:13px;font-weight:700;color:#92400e}
+.flow-node.text-node .dn-type{font-size:9px;color:#b45309}
+body.dark .flow-node.decision-node::before{background:#1e293b;border-color:#94a3b8}
+body.dark .flow-node.text-node{background:#422006;border-color:#f59e0b}
+body.dark .flow-node.text-node .dn-name{color:#fde68a}
+body.dark .flow-node.text-node .dn-type{color:#fbbf24}
+
 .flow-node .dn-name{display:block;font-size:14px;font-weight:750;line-height:1.4;word-break:break-word}
 .flow-node .dn-type{display:block;font-size:10px;color:#64748b;margin-top:2px}
 /* 四邊都有「隱形」連線熱區；平常不顯示圓點，只有開始拉線時才顯示 */
@@ -361,7 +401,7 @@ button:disabled{cursor:not-allowed;opacity:.48}
  .canvas-toolbar>*{flex:0 0 auto}.canvas-toolbar .tip{display:none}
  .right{display:block!important;min-width:0;padding:0;overflow:hidden}
  .editor-layout.right-collapsed .right{position:relative;border-left:1px solid var(--line)}
- .editor-layout:not(.right-collapsed) .right{position:fixed;z-index:1002;left:0;right:0;bottom:0;height:min(72dvh,650px);padding:18px max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));overflow:auto;border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgba(15,23,42,.18)}
+ .editor-layout:not(.right-collapsed) .right{position:fixed;z-index:1002;left:0;right:0;bottom:0;height:min(72dvh,650px);padding:18px max(14px,env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));overflow:auto;border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgba(15,23,42,.18)}
  .editor-layout:not(.right-collapsed) .right-panel-head{position:sticky;top:-18px;z-index:2;margin:-8px 0 12px;padding:8px 0;background:inherit;justify-content:space-between}.editor-layout:not(.right-collapsed) .right-panel-title{display:block;font-weight:700}
  .editor-layout:not(.right-collapsed) .right-panel-toggle{min-height:38px}
  .canvas-ui-bar{height:auto;min-height:44px;padding-bottom:env(safe-area-inset-bottom)}.canvas-ui-bar .canvas-status{height:auto;min-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.canvas-fullscreen-btn{min-height:34px}
@@ -403,7 +443,7 @@ header>#themeBtn{position:absolute;top:50%;right:20px;z-index:3;transform:transl
  header>#themeBtn{position:absolute;top:50%;right:max(10px,env(safe-area-inset-right));transform:translateY(-50%)}
 }
 
-/* 預覽連線固定在流程圖工具列右側，且限於畫布區，不會覆蓋右側設定欄。 */
+/* 預覽┅固定在流程圖工具列右側，且限於畫布區，不會覆蓋右側設定欄。 */
 .canvas-panel{position:relative}
 .canvas-toolbar{padding-right:118px}
 #connectBtn{position:absolute;top:8px;right:12px;z-index:12;margin:0;white-space:nowrap}
@@ -412,9 +452,261 @@ header>#themeBtn{position:absolute;top:50%;right:20px;z-index:3;transform:transl
  #connectBtn{right:max(10px,env(safe-area-inset-right))}
 }
 /* 手機友善的單獨引線選取模式：節點不攔截點擊，引線有較大的透明命中區。 */
-.conn-hit{fill:none;stroke:transparent;stroke-width:28px;pointer-events:stroke;cursor:pointer}
+.conn-hit{fill:none;stroke:transparent;stroke-width:96px;stroke-linecap:round;stroke-linejoin:round;pointer-events:stroke;cursor:pointer;touch-action:manipulation}
 .diagram.connection-select-mode .flow-node,.diagram.connection-select-mode .bend-point{pointer-events:none}
 .diagram.connection-select-mode .conn{cursor:pointer}
+
+
+/* v1.1.21：獨立圖框尺寸調整模式 */
+.flow-node .resize-handle{display:none;position:absolute;right:-7px;bottom:-7px;width:15px;height:15px;border:2px solid var(--accent,#4f46e5);background:var(--panel,#fff);border-radius:4px;cursor:nwse-resize;z-index:20;touch-action:none;}
+body.resize-mode .flow-node .resize-handle{display:block;}
+body.resize-mode .flow-node{cursor:default;}
+body.resize-mode .flow-node .handle{pointer-events:none;opacity:.22;}
+
+/* v1.1.21：判斷菱形使用不可見的虛擬矩形尺寸，菱形本體完整包覆於其中 */
+.flow-node.decision-node{
+  position:absolute!important;
+  /* 虛擬矩形只負責提供尺寸資料；實際命中區域與顯示外框必須是菱形。 */
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  width:var(--decision-width,170px)!important;
+  height:var(--decision-height,120px)!important;
+  min-width:0!important;min-height:0!important;max-width:none!important;
+  padding:0!important;background:transparent!important;border:0!important;
+  border-radius:0!important;box-shadow:none!important;overflow:visible!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  box-sizing:border-box!important;
+}
+.flow-node.decision-node::before{
+  content:"";position:absolute;inset:0!important;
+  background:var(--node-border,#94a3b8)!important;
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  border:0!important;border-radius:0!important;z-index:0!important;
+}
+.flow-node.decision-node::after{
+  content:"";position:absolute;inset:3px!important;
+  background:var(--node-bg,#fff)!important;
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  z-index:0!important;pointer-events:none;
+}
+.flow-node.decision-node .node-inner{position:relative!important;z-index:1!important;max-width:72%!important;max-height:72%!important;text-align:center!important;overflow:visible!important;}
+.flow-node.decision-node .dn-name,.flow-node.decision-node .dn-type{white-space:normal;word-break:break-word;}
+.flow-node.text-node.no-background,
+body.dark .flow-node.text-node.no-background{
+  background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding:0!important;
+}
+.flow-node.text-node.no-background .dn-name,
+body.dark .flow-node.text-node.no-background .dn-name{color:inherit!important;}
+/* v1.1.21：圖框設定採用滑塊、滑動開關與檢色器 UI */
+.flow-node{box-sizing:border-box;}
+.editor-range-row{display:grid;grid-template-columns:minmax(0,1fr) 58px;gap:10px;align-items:center}
+.editor-range-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center}.editor-range-row input[type=range]{width:100%;accent-color:#4f7cff;cursor:pointer}.range-manual{width:78px!important;min-width:0!important;padding:5px 6px!important;}
+.editor-range-value{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.editor-color-row{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;align-items:center}
+.editor-color-row input[type=color]{width:44px;height:36px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer}
+.editor-color-hex{width:100%;box-sizing:border-box}
+.editor-switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #facc15;border-radius:10px;background:rgba(250,204,21,.07)}
+.editor-switch-label{font-size:12px;font-weight:700;color:var(--text)}
+.editor-switch input{position:absolute;opacity:0;pointer-events:none}
+.editor-switch-ui{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto;border-radius:999px;background:#64748b;cursor:pointer;transition:background .18s}
+.editor-switch-ui:before{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .18s}
+.editor-switch input:checked + .editor-switch-ui{background:#4f46e5}
+.editor-switch input:checked + .editor-switch-ui:before{transform:translateX(18px)}
+ .flow-node{box-sizing:border-box;}
+.flow-node .node-inner{box-sizing:border-box;max-width:100%;max-height:100%;overflow:hidden;}
+.flow-node .dn-name{font-size:var(--node-font-size,14px);color:var(--node-text-color,inherit);}
+.flow-node .dn-type{color:var(--node-sub-color,#64748b);}
+.flow-node.normal-node{background:var(--node-bg,#fff);border-color:var(--node-border,#b8c0cc);opacity:var(--node-opacity,1);}
+.flow-node.text-node,.flow-node.decision-node{opacity:var(--node-opacity,1);}
+.flow-node.text-node .dn-name{font-size:var(--node-font-size,13px);color:var(--node-text-color,#92400e);}
+.flow-node.text-node .dn-type{color:var(--node-sub-color,#b45309);}
+.flow-node.decision-node::before{background:var(--node-border,#94a3b8)!important;}
+.flow-node.decision-node::after{background:var(--node-bg,#fff)!important;}
+.flow-node.text-node.no-background{background:transparent!important;border-color:transparent!important;box-shadow:none!important;}
+ .conn-arrow{pointer-events:none;}
+/* v1.1.21：深色模式下避免舊資料中的深色預設文字變成黑色 */
+body.dark .flow-node .dn-name{color:var(--node-text-color,#f8fafc);}
+body.dark .flow-node .dn-type{color:var(--node-sub-color,#94a3b8);}
+body.dark .flow-node.normal-node{color:#f8fafc;}
+body.dark .flow-node.decision-node .dn-name{color:var(--node-text-color,#f8fafc);}
+body.dark .flow-node.decision-node .dn-type{color:var(--node-sub-color,#cbd5e1);}
+
+
+/* v1.1.21：全域深／淺色主題統一覆蓋 */
+:root{
+  color-scheme:light;
+  --bg:#f5f7fb;
+  --surface:#ffffff;
+  --surface-2:#f8fafc;
+  --surface-3:#eef2f7;
+  --canvas:#f8fafc;
+  --grid-dot:rgba(100,116,139,.28);
+  --line:#dce2ea;
+  --line-strong:#b8c0cc;
+  --text:#202733;
+  --text-strong:#111827;
+  --muted:#64748b;
+  --muted-2:#94a3b8;
+  --control-bg:#ffffff;
+  --control-hover:#f1f5f9;
+  --node-bg-default:#ffffff;
+  --node-border-default:#b8c0cc;
+  --node-text-default:#111827;
+  --node-sub-default:#64748b;
+  --connector:#334155;
+  --connector-arrow:#334155;
+  --selection:#6366f1;
+  --selection-bg:#eef2ff;
+  --accent-soft:#eef2ff;
+  --accent-text:#3730a3;
+  --shadow-soft:0 1px 2px rgba(15,23,42,.05);
+}
+body.dark{
+  color-scheme:dark;
+  --bg:#0f172a;
+  --surface:#111827;
+  --surface-2:#1e293b;
+  --surface-3:#273449;
+  --canvas:#0b1220;
+  --grid-dot:rgba(148,163,184,.30);
+  --line:#334155;
+  --line-strong:#475569;
+  --text:#e5e7eb;
+  --text-strong:#f8fafc;
+  --muted:#94a3b8;
+  --muted-2:#cbd5e1;
+  --control-bg:#0f172a;
+  --control-hover:#334155;
+  --node-bg-default:#1e293b;
+  --node-border-default:#475569;
+  --node-text-default:#f8fafc;
+  --node-sub-default:#cbd5e1;
+  --connector:#f8fafc;
+  --connector-arrow:#f8fafc;
+  --selection:#a5b4fc;
+  --selection-bg:#312e81;
+  --accent-soft:#312e81;
+  --accent-text:#e0e7ff;
+  --shadow-soft:0 1px 2px rgba(0,0,0,.24);
+}
+
+html,body{background:var(--bg);color:var(--text)}
+header,.searchbar,.tree-wrap,.flow-overview,.canvas-panel,.canvas-toolbar,.canvas-status,.canvas-ui-bar,.right{
+  background:var(--surface)!important;color:var(--text);border-color:var(--line)!important;
+}
+.left{border-color:var(--line)!important}
+button{background:var(--control-bg);color:var(--text);border-color:var(--line)}
+button:hover{background:var(--control-hover);color:var(--text)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+input,textarea,select{background:var(--control-bg);color:var(--text);border-color:var(--line-strong)}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+.field label,.panel-title,.logo,.app-title{color:var(--text)}
+.hint,.flow-help,.flow-title,.canvas-toolbar .tip,.zoom-readout,.canvas-status,.stat{color:var(--muted)}
+.stat{background:var(--surface-2);border:1px solid var(--line)}
+.node-card{color:var(--text)}
+.node-card:hover{background:var(--surface-2);border-color:var(--line)}
+.node-row.selected>.node-card{background:var(--selection-bg);outline-color:var(--selection)}
+.node-type{background:var(--surface-3);color:var(--muted-2)}
+.children{border-color:var(--line-strong)}
+.children>.branch:before{border-color:var(--line-strong)}
+.toggle{color:var(--muted)}
+.flow-box{background:var(--surface-2);border-color:var(--line-strong);color:var(--text)}
+.flow-box.choice{background:var(--accent-soft);border-color:var(--selection);color:var(--accent-text)}
+.flow-arrow{color:var(--muted-2)}
+.canvas-scroll{background:var(--canvas)!important}
+
+.canvas-fullscreen-btn{background:var(--control-bg);color:var(--text);border-color:var(--line-strong)}
+.flow-node{color:var(--node-text-color,var(--node-text-default));background:var(--node-bg,var(--node-bg-default));border-color:var(--node-border,var(--node-border-default));box-shadow:var(--shadow-soft)}
+.flow-node:hover{background:var(--node-bg,var(--control-hover))}
+.flow-node .dn-name,.flow-node .node-text{color:var(--node-text-color,var(--node-text-default))}
+.flow-node .dn-type,.flow-node .sub{color:var(--node-sub-color,var(--node-sub-default))}
+.flow-node.selected{outline-color:var(--selection);background:var(--node-bg,var(--node-bg-default))}
+.flow-node.decision-node::before{background:var(--node-bg,var(--node-bg-default));border-color:var(--node-border,var(--node-border-default))}
+.flow-node.text-node .dn-name{color:var(--node-text-color,var(--node-text-default))}
+.flow-node.text-node .dn-type{color:var(--node-sub-color,var(--node-sub-default))}
+.flow-svg path,.flow-svg line,.conn{stroke:var(--connector)!important}
+.flow-svg .arrow,.conn-arrow{fill:var(--connector-arrow)!important}
+.conn.selected{stroke:var(--selection)!important}
+.temp-line{stroke:var(--selection)!important}
+.handle::after{border-color:var(--selection);background:var(--control-bg)}
+.drag-anchor-point{border-color:var(--selection);background:var(--control-bg)}
+mark{background:#fef08a;color:#713f12}
+body.dark mark{background:#854d0e;color:#fef3c7}
+.badge{background:var(--accent-soft);color:var(--accent-text)}
+body.dark .flow-node.normal-node{color:var(--node-text-color,var(--node-text-default))}
+body.dark .flow-node .dn-name,body.dark .flow-node.decision-node .dn-name{color:var(--node-text-color,var(--node-text-default))}
+body.dark .flow-node .dn-type,body.dark .flow-node.decision-node .dn-type{color:var(--node-sub-color,var(--node-sub-default))}
+body.dark .flow-node.text-node.no-background{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+body.dark .right-panel-title,body.dark .right-panel-toggle{color:var(--text)}
+body.dark .flow-node .dn-name,body.dark .flow-node .node-text{
+  color:var(--node-text-color,var(--node-text-default)) !important;
+}
+body.dark .flow-node .dn-type,body.dark .flow-node .sub{
+  color:var(--node-sub-color,var(--node-sub-default)) !important;
+}
+/* v1.1.21：菱形的選取框沿著菱形邊界，不顯示虛擬矩形外框。 */
+.flow-node.decision-node.selected{
+  outline:none!important;
+  background:transparent!important;
+  border:0!important;
+}
+.flow-node.decision-node.selected::before{
+  background:var(--selection)!important;
+}
+.flow-node.decision-node.selected::after{
+  inset:4px!important;
+}
+/* clip-path 讓虛擬矩形四個角不再成為可點選／拖曳區域。 */
+.flow-node.decision-node .resize-handle{
+  right:auto!important;bottom:auto!important;
+  left:calc(50% - 7px)!important;
+  top:calc(100% - 7px)!important;
+}
+
+/* 讓主題切換時 SVG marker、選取框與輔助線也同步 */
+body.dark .flow-svg path,body.dark .flow-svg line,body.dark .conn{stroke:var(--connector)!important}
+body.dark .flow-svg .arrow,body.dark .conn-arrow{fill:var(--connector-arrow)!important}
+</style>
+
+<style id="decisionDiamondSelectionFix">
+/* v1.1.26：菱形的外框與選取框沿用一般節點的「外框／選取」概念，
+   但外形仍跟隨菱形，不顯示虛擬矩形。 */
+.flow-node.decision-node{
+  /* 虛擬矩形只提供尺寸；不讓它產生矩形外框。 */
+  outline:none!important;
+}
+.flow-node.decision-node::before{
+  /* 外層：一般節點的 border */
+  inset:0!important;
+  background:var(--node-border,var(--node-border-default))!important;
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)!important;
+}
+.flow-node.decision-node::after{
+  /* 內層：一般節點的背景 */
+  inset:3px!important;
+  background:var(--node-bg,var(--node-bg-default))!important;
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)!important;
+}
+.flow-node.decision-node.selected{
+  /* outline 不會因虛擬矩形而出現方框；使用 drop-shadow 沿菱形輪廓產生選取框。 */
+  outline:none!important;
+  background:transparent!important;
+  border:0!important;
+  filter:drop-shadow(0 0 0 var(--selection)) drop-shadow(0 0 0 var(--selection));
+}
+.flow-node.decision-node.selected::before{
+  background:var(--selection)!important;
+}
+.flow-node.decision-node.selected::after{
+  inset:4px!important;
+  background:var(--node-bg,var(--node-bg-default))!important;
+}
+/* 選取時不顯示虛擬矩形 resize 控制點；控制點仍以菱形底部中心為基準。 */
+.flow-node.decision-node .resize-handle{
+  left:calc(50% - 7px)!important;
+  right:auto!important;
+  top:calc(100% - 7px)!important;
+  bottom:auto!important;
+}
 </style>
 
 <style id="saveSuccessModalStyle">
@@ -426,9 +718,26 @@ header>#themeBtn{position:absolute;top:50%;right:20px;z-index:3;transform:transl
 
 #saveSuccessModal .save-success-text{font-size:14px;color:#555;margin-bottom:16px}
 #saveSuccessModal button{padding:7px 20px}
+/* v1.1.34：按鈕區改為內容流，放在備註區塊下方；不再固定懸浮 */
+.right #editor .actions{
+  position:static!important;
+  inset:auto!important;
+  width:100%!important;
+  margin:12px 0 16px!important;
+  padding:10px 0!important;
+  background:var(--panel)!important;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  box-sizing:border-box;
+  z-index:auto!important;
+}
+.right #editor .actions .format-actions{
+  position:static!important;
+  width:100%!important;
+}
 </style>
 <style id="v118-preview-pinch-fix">
-/* v1.1.9：預覽連線的雙指縮放不可選取流程圖／文字 */
+/* v1.1.21：預覽┅的雙指縮放不可選取流程圖／文字 */
 body.preview-readonly,
 body.preview-readonly #canvasScroll,
 body.preview-readonly #diagram,
@@ -444,13 +753,659 @@ body.preview-readonly .conn,
 body.preview-readonly .conn-hit{pointer-events:none !important}
 body.preview-readonly .flow-node{cursor:grab !important}
 body.preview-readonly .flow-node:active{cursor:grabbing !important}
+
+/* v1.1.27：背景說明文字與設定按鈕版面修正 */
+.field-label-help{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  line-height:1.45;
+  font-weight:700;
+  color:var(--muted);
+}
+/* 設定按鈕必須位於右側內容正常流的末端，不固定、不懸浮、不遮蓋欄位 */
+.right #editor .actions,
+.right #editor .format-actions{
+  position:static!important;
+  inset:auto!important;
+  bottom:auto!important;
+  top:auto!important;
+  left:auto!important;
+  right:auto!important;
+  transform:none!important;
+  float:none!important;
+  clear:both;
+  width:100%;
+  align-self:stretch;
+}
+.right #editor .actions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin:18px 0 0;
+  padding:0;
+}
+.right #editor .format-actions{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  grid-column:1/-1;
+  margin:0;
+  padding:0;
+}
+.right #editor .actions button,
+.right #editor .format-actions button{
+  position:static!important;
+  inset:auto!important;
+  width:100%;
+  min-width:0;
+}
+@media(max-width:520px){
+  .right #editor .actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .right #editor .format-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .right #editor .format-actions button{font-size:12px;padding:8px 4px}
+}
+
+/* v1.1.29：右側設定按鈕固定在右欄底部上緣 10px，不隨右欄內容捲動 */
+.right{
+  position:relative;
+  padding-bottom:150px!important;
+}
+.right #editor{
+  padding-bottom:20px;
+}
+.right #editor .actions{
+  position:absolute!important;
+  left:22px!important;
+  right:22px!important;
+  bottom:10px!important;
+  width:auto!important;
+  z-index:20;
+  margin:0!important;
+  padding:10px 0 0!important;
+  background:var(--panel)!important;
+  box-sizing:border-box;
+}
+.right #editor .format-actions{
+  position:static!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+}
+.right #editor .actions button,
+.right #editor .format-actions button{
+  min-width:0;
+}
+@media(max-width:900px){
+  .right #editor .actions{
+    left:14px!important;
+    right:14px!important;
+    bottom:10px!important;
+  }
+}
+
+/* v1.1.34：設定按鈕區固定貼齊右欄底部，隨右欄捲動保持可見，並跟隨深／淺色主題 */
+.right{
+  position:relative;
+  overflow:auto;
+  padding-bottom:170px!important;
+  background:var(--surface)!important;
+}
+.right #editor{
+  padding-bottom:24px;
+}
+.right #editor .actions{
+  position:sticky!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:10px!important;
+  width:100%!important;
+  z-index:50;
+  margin:18px 0 0!important;
+  padding:10px 0 0!important;
+  background:var(--surface)!important;
+  border-top:1px solid var(--line)!important;
+  box-sizing:border-box;
+}
+.right #editor .format-actions{
+  position:static!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+}
+.right #editor .actions button,
+.right #editor .format-actions button{
+  min-width:0;
+}
+
+/* v1.1.34：右側設定欄按鈕固定在右欄可視區底部，不隨設定內容捲動 */
+.right{
+  position:relative!important;
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  background:var(--surface)!important;
+  padding:0!important;
+}
+.right .right-panel-head{
+  flex:0 0 auto!important;
+}
+.right #editor{
+  position:static!important;
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow:auto!important;
+  box-sizing:border-box!important;
+  padding:14px 22px 190px!important;
+}
+.right #editor .actions{
+  position:absolute!important;
+  left:22px!important;
+  right:22px!important;
+  bottom:10px!important;
+  width:auto!important;
+  z-index:100!important;
+  margin:0!important;
+  padding:10px 0 0!important;
+  background:var(--surface)!important;
+  border-top:1px solid var(--line)!important;
+  box-sizing:border-box!important;
+}
+.right #editor .format-actions{
+  position:static!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+}
+.right #editor .actions button,
+.right #editor .format-actions button{
+  min-width:0!important;
+}
+@media(max-width:900px){
+  .right #editor{padding-left:14px!important;padding-right:14px!important;padding-bottom:190px!important}
+  .right #editor .actions{left:14px!important;right:14px!important;bottom:10px!important}
+}
+
+/* v1.1.35：修正功能欄與編輯區主題背景，避免深色模式出現白色區塊 */
+.editor-layout{
+  grid-template-columns:52px minmax(0,1fr) 360px;
+}
+.function-rail{
+  background:var(--panel);
+  color:var(--text);
+}
+.canvas-panel{
+  background:var(--panel);
+}
+@media(max-width:900px){
+  .editor-layout{grid-template-columns:48px minmax(0,1fr) 38px;}
+}
+body.dark .function-rail,
+body.dark .canvas-panel,
+body.dark .canvas-toolbar,
+body.dark .canvas-status{
+  background:#111827;
+  color:#e5e7eb;
+  border-color:#334155;
+}
+body.dark .function-rail button{
+  background:#1f2937;
+  color:#e5e7eb;
+  border-color:#475569;
+}
+body.dark .function-rail button:hover{
+  background:#334155;
+}
+body:not(.dark) .function-rail,
+body:not(.dark) .canvas-panel,
+body:not(.dark) .canvas-toolbar,
+body:not(.dark) .canvas-status{
+  background:var(--panel);
+  color:var(--text);
+}
+</style>
+
+
+<style id="v1-1-36-layout-fix">
+/* v1.1.38：功能欄只占用按鈕寬度；右側設定欄獨立收合 */
+.editor-layout{
+  display:grid !important;
+  grid-template-columns:52px minmax(0,1fr) 360px !important;
+  min-width:0;
+}
+.function-rail{
+  width:52px !important;
+  min-width:52px !important;
+  max-width:52px !important;
+  box-sizing:border-box !important;
+  align-items:flex-start !important;
+  justify-content:flex-start !important;
+  padding:8px 6px !important;
+  margin:0 !important;
+  background:var(--panel) !important;
+  color:var(--text) !important;
+  border-right:1px solid var(--line) !important;
+}
+.function-rail .rail-title{
+  width:40px !important;
+  align-self:flex-start !important;
+  box-sizing:border-box !important;
+  margin:0 0 2px 0 !important;
+  padding:5px 0 8px !important;
+  text-align:center !important;
+  color:var(--text) !important;
+}
+.function-rail button{
+  width:40px !important;
+  min-width:40px !important;
+  max-width:40px !important;
+  box-sizing:border-box !important;
+  align-self:flex-start !important;
+  margin:0 !important;
+}
+/* 右側欄的收合只改變右欄，不影響左側功能欄 */
+.editor-layout.right-collapsed{
+  grid-template-columns:52px minmax(0,1fr) 38px !important;
+}
+.editor-layout.right-collapsed .function-rail{
+  width:52px !important;
+  min-width:52px !important;
+  max-width:52px !important;
+}
+@media (max-width:900px){
+  .editor-layout,
+  .editor-layout.right-collapsed{
+    grid-template-columns:52px minmax(0,1fr) 38px !important;
+  }
+  .function-rail{
+    width:52px !important;
+    min-width:52px !important;
+    max-width:52px !important;
+    padding:7px 6px !important;
+  }
+  .function-rail button,
+  .function-rail .rail-title{
+    width:40px !important;
+    min-width:40px !important;
+    max-width:40px !important;
+  }
+}
+@media (max-width:520px){
+  .editor-layout,
+  .editor-layout.right-collapsed{
+    grid-template-columns:52px minmax(0,1fr) 38px !important;
+  }
+}
+</style>
+
+
+<style id="v1-1-37-theme-and-rail">
+/* v1.1.38：功能欄主題與獨立左右三角形收合控制 */
+.editor-layout{
+  grid-template-columns:52px minmax(0,1fr) 360px !important;
+}
+.function-rail{
+  background:#f8fafc !important;
+  color:#111827 !important;
+  overflow:hidden !important;
+  transition:width .18s ease, min-width .18s ease, max-width .18s ease !important;
+}
+.function-rail .rail-toggle{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:40px !important;
+  min-width:40px !important;
+  height:34px !important;
+  padding:0 !important;
+  margin:0 0 6px 0 !important;
+  font-size:15px !important;
+}
+.function-rail.rail-collapsed{
+  width:38px !important;
+  min-width:38px !important;
+  max-width:38px !important;
+  padding-left:4px !important;
+  padding-right:4px !important;
+}
+.function-rail.rail-collapsed .rail-title,
+.function-rail.rail-collapsed > button:not(.rail-toggle){
+  display:none !important;
+}
+.function-rail.rail-collapsed .rail-toggle{
+  display:inline-flex !important;
+  width:30px !important;
+  min-width:30px !important;
+}
+.editor-layout.rail-collapsed{
+  grid-template-columns:38px minmax(0,1fr) 360px !important;
+}
+.editor-layout.rail-collapsed.right-collapsed{
+  grid-template-columns:38px minmax(0,1fr) 38px !important;
+}
+body.dark .function-rail{
+  background:#111827 !important;
+  color:#e5e7eb !important;
+  border-color:#334155 !important;
+}
+body:not(.dark) .function-rail{
+  background:#f8fafc !important;
+  color:#111827 !important;
+  border-color:#cbd5e1 !important;
+}
+body.dark .function-rail button:not(.primary){
+  background:#1f2937 !important;
+  color:#e5e7eb !important;
+  border-color:#475569 !important;
+}
+body:not(.dark) .function-rail button:not(.primary){
+  background:#e2e8f0 !important;
+  color:#111827 !important;
+  border-color:#94a3b8 !important;
+}
+.function-rail button.primary, body.dark .function-rail button.primary{
+  background:#4f46e5 !important;
+  border-color:#4f46e5 !important;
+  color:#fff !important;
+}
+@media(max-width:900px){
+  .editor-layout{grid-template-columns:52px minmax(0,1fr) 38px !important;}
+  .editor-layout.rail-collapsed{grid-template-columns:38px minmax(0,1fr) 38px !important;}
+  .editor-layout:not(.right-collapsed):not(.rail-collapsed){grid-template-columns:52px minmax(0,1fr) 360px !important;}
+}
+</style>
+
+<style id="v1-1-38-rail-triangle-fix">
+/* v1.1.38：三角形控制按鈕統一尺寸；功能欄收合後只保留按鈕 */
+#functionRailToggleBtn,
+#toolbarToggleBtn,
+#rightPanelToggleBtn {
+  box-sizing:border-box !important;
+  width:32px !important;
+  min-width:32px !important;
+  height:32px !important;
+  min-height:32px !important;
+  padding:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  line-height:1 !important;
+  flex:0 0 32px !important;
+}
+#functionRailToggleBtn { font-size:15px !important; }
+#toolbarToggleBtn { font-size:0 !important; }
+#toolbarToggleBtn::before { font-size:15px !important; line-height:1 !important; }
+.function-rail.rail-collapsed {
+  width:38px !important;
+  min-width:38px !important;
+  max-width:38px !important;
+  padding:3px !important;
+  gap:0 !important;
+  background:transparent !important;
+  border-right:0 !important;
+}
+.function-rail.rail-collapsed #functionRailToggleBtn {
+  width:32px !important;
+  min-width:32px !important;
+  height:32px !important;
+  min-height:32px !important;
+  margin:0 !important;
+}
+.function-rail.rail-collapsed .rail-title,
+.function-rail.rail-collapsed > button:not(#functionRailToggleBtn) {
+  display:none !important;
+}
+body.dark .function-rail.rail-collapsed,
+body:not(.dark) .function-rail.rail-collapsed {
+  background:transparent !important;
+  border-color:transparent !important;
+}
+</style>
+
+<style id="collapse-only-toggle-fix">
+/* 收合後：上方工具列只保留工具列展開按鈕 */
+.canvas-toolbar.toolbar-collapsed{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  flex-wrap:nowrap !important;
+  min-height:44px !important;
+  height:44px !important;
+  padding:6px 12px !important;
+  gap:0 !important;
+}
+.canvas-toolbar.toolbar-collapsed > *:not(#toolbarToggleBtn){
+  display:none !important;
+}
+.canvas-toolbar.toolbar-collapsed #toolbarToggleBtn{
+  display:inline-flex !important;
+  flex:0 0 32px !important;
+  margin:0 !important;
+}
+
+/* 收合後：左側工具欄只保留功能欄展開按鈕 */
+.function-rail.rail-collapsed{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  width:38px !important;
+  min-width:38px !important;
+  max-width:38px !important;
+  padding:6px 3px !important;
+  gap:0 !important;
+  overflow:hidden !important;
+  background:transparent !important;
+  border-right:0 !important;
+}
+.function-rail.rail-collapsed > *:not(#functionRailToggleBtn){
+  display:none !important;
+}
+.function-rail.rail-collapsed #functionRailToggleBtn{
+  display:inline-flex !important;
+  flex:0 0 32px !important;
+  width:32px !important;
+  min-width:32px !important;
+  height:32px !important;
+  min-height:32px !important;
+  margin:0 !important;
+  padding:0 !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+</style>
+
+
+<style id="collapse-canvas-interaction-fix">
+/* 收合後：容器不再鋪滿背景，也不攔截畫布操作；只保留按鈕本身 */
+.canvas-toolbar.toolbar-collapsed {
+  display: block !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+.canvas-toolbar.toolbar-collapsed > :not(#toolbarToggleBtn) {
+  display: none !important;
+}
+
+.canvas-toolbar.toolbar-collapsed > #toolbarToggleBtn {
+  display: flex !important;
+  position: absolute !important;
+  top: 8px !important;
+  left: 8px !important;
+  z-index: 100 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+}
+
+/* 左側欄收合後：不再保留側欄底色與寬度，只浮出收合按鈕 */
+.function-rail.rail-collapsed {
+  display: block !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+.function-rail.rail-collapsed > :not(#functionRailToggleBtn) {
+  display: none !important;
+}
+
+.function-rail.rail-collapsed > #functionRailToggleBtn {
+  display: flex !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 8px !important;
+  transform: translateY(-50%) !important;
+  z-index: 100 !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+}
+
+/* 收合時確保畫布層可接收點擊、拖曳與縮放 */
+.canvas-toolbar.toolbar-collapsed ~ *,
+.function-rail.rail-collapsed ~ * {
+  pointer-events: auto;
+}
+</style>
+
+
+<style id="collapse-button-position-fix">
+/* 左側功能欄收合時，完全讓出寬度給畫布 */
+.editor-layout.rail-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr) 360px !important;
+}
+.editor-layout.rail-collapsed.right-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr) 38px !important;
+}
+
+/* 收合後兩個按鈕以外都不攔截畫布 */
+.editor-layout.rail-collapsed .function-rail.rail-collapsed {
+  pointer-events: none !important;
+}
+.editor-layout.rail-collapsed .function-rail.rail-collapsed > #functionRailToggleBtn {
+  pointer-events: auto !important;
+}
+</style>
+
+
+<style id="v1-1-40-right-panel-button-fix">
+/* v1.1.40：右側欄展開時恢復完整收合按鈕寬度，避免文字被裁切。 */
+.editor-layout:not(.right-collapsed) #rightPanelToggleBtn{
+  width:auto !important;
+  min-width:0 !important;
+  height:auto !important;
+  min-height:38px !important;
+  padding:8px 11px !important;
+  flex:0 0 auto !important;
+  white-space:nowrap !important;
+}
+/* v1.1.65：右上角收合按鈕稍微向右、向下調整位置。 */
+.editor-layout:not(.right-collapsed) #rightPanelToggleBtn{
+  transform:translate(-28px,28px) !important;
+}
+</style>
+
+<style id="v1-1-44-right-panel-button-size-fix">
+/* v1.1.65：右上角收合按鈕改為與側欄垂直按鈕一致的窄尺寸與邊框呈現。 */
+.editor-layout:not(.right-collapsed) #rightPanelToggleBtn{
+  box-sizing:border-box !important;
+  width:32px !important;
+  min-width:32px !important;
+  height:38px !important;
+  min-height:38px !important;
+  padding:4px 0 !important;
+  flex:0 0 32px !important;
+  white-space:normal !important;
+  word-break:break-all !important;
+  line-height:1.05 !important;
+  transform:translate(-28px,28px) !important;
+}
+</style>
+
+<style id="text-node-selection-border-fix">
+/* v1.1.65：所有可選取圖塊都恢復一致的藍色選取外框。
+   文字圖塊保留自身橘色虛線內框；一般節點沿用原本 selected 樣式。
+   菱形節點由既有 decision-node selected 規則獨立處理。 */
+.flow-node.selected:not(.decision-node){
+  outline:2px solid #818cf8 !important;
+  outline-offset:2px !important;
+}
+</style>
+
+
+<style id="text-node-selection-appearance-fix">
+/* v1.1.65：文字圖塊選取時，只保留藍色外層選取框；
+   文字、背景、內部邊框、內距完全沿用未選取的文字圖塊樣式。 */
+.flow-node.text-node.selected{
+  background:#fff7ed !important;
+  border:1px dashed #f59e0b !important;
+  padding:5px 9px !important;
+  color:#92400e !important;
+  box-shadow:none !important;
+}
+.flow-node.text-node.selected .dn-name{
+  color:#92400e !important;
+}
+.flow-node.text-node.selected .dn-type{
+  color:#b45309 !important;
+}
+body.dark .flow-node.text-node.selected{
+  background:#422006 !important;
+  border:1px dashed #f59e0b !important;
+  color:#fde68a !important;
+}
+body.dark .flow-node.text-node.selected .dn-name{
+  color:#fde68a !important;
+}
+body.dark .flow-node.text-node.selected .dn-type{
+  color:#fbbf24 !important;
+}
+</style>
+
+
+<style id="node-dimension-box-sizing-fix">
+/* v1.1.65：圖框寬高以節點外框尺寸為準。
+   避免 border / padding 在選取狀態下改變實際顯示尺寸。 */
+.flow-node{
+  box-sizing:border-box !important;
+}
+.flow-node.selected{
+  box-sizing:border-box !important;
+}
 </style>
 
 </head>
 <body class="dark">
 <header>
-  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.9</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
-  <span class="badge">v1.1.9</span>
+  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.65</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
+  <span class="badge">v1.1.65</span>
   <div class="toolbar">
     <button id="newFileBtn" type="button" onclick="newProject()">新增檔案</button>
     <button id="openFileBtn" onclick="openProject()">開啟舊檔</button>
@@ -464,21 +1419,27 @@ body.preview-readonly .flow-node:active{cursor:grabbing !important}
 </header>
 
 <div class="editor-layout">
+  <aside class="function-rail" aria-label="功能欄">
+    <button id="functionRailToggleBtn" class="rail-toggle" type="button" aria-expanded="true" aria-label="收合功能欄" title="收合功能欄">◀</button>
+    <button id="addNodeBtn" class="primary" type="button">＋新增</button>
+    <button id="addDecisionBtn" type="button">◇判斷</button>
+    <button id="addTextBlockBtn" type="button">T文字</button>
+    <button id="resizeModeBtn" type="button" aria-pressed="false">◱調整</button>
+    <button id="deleteConnBtn" type="button">del選取┅</button>     <button id="selectConnBtn" type="button" aria-pressed="false">單選┅</button>
+    <button id="addBendBtn" type="button">┌轉點</button>
+  </aside>
   <section class="canvas-panel">
     <div class="canvas-toolbar">
       <button id="toolbarToggleBtn" type="button" aria-expanded="true">工具列收合</button>
-      <button id="addNodeBtn" class="primary" type="button">＋新增</button>
       <button id="axisBtn" type="button">#定位軸線：關閉</button>
-      <button id="deleteConnBtn" type="button">del選取引線</button>
-      <button id="addBendBtn" type="button">┌新增轉彎點</button>
-      <button id="selectConnBtn" type="button" aria-pressed="false">單獨選取引線</button>
+      
       <button id="groupBtn" type="button">✓群組</button>
-      <button id="ungroupBtn" type="button">✗取消群組</button>
+      <button id="ungroupBtn" type="button">✗群組</button>
       <button id="expandAllBtn" type="button">all展開</button>
       <button id="collapseAllBtn" type="button">all收合</button>
       <span class="tip">拖曳流程圖移動　｜　Ctrl+左鍵多選　｜　Shift+左鍵父子範圍　｜　流程圖連點兩下展開／收合　｜　從 ● 拉線</span>
         </div>
-    <button id="connectBtn" type="button">預覽連線</button>
+    <button id="connectBtn" type="button">預覽┅</button>
     <div class="canvas-scroll" id="canvasScroll" tabindex="0" aria-label="流程圖畫布">
       <div class="coord-layer" id="coordLayer" aria-hidden="true">
           <div class="coord-grid"></div>
@@ -515,6 +1476,8 @@ body.preview-readonly .flow-node:active{cursor:grabbing !important}
 
 
 <script>
+const SINGLE_CONNECTION_TOUCH_HIT_RADIUS = 22;
+
 const safeStorage={
  getItem(k){try{return window.localStorage.getItem(k)}catch(e){return null}},
  setItem(k,v){try{window.localStorage.setItem(k,v)}catch(e){}},
@@ -560,11 +1523,14 @@ let applyFlowchartMode=false;
 let previewConnections=false;
 let connectionSelectMode=false;
 let applyFlowchartSourceId=null;
+let applyFormatMode=false;
+let applyFormatSourceId=null;
 const undoStack=[],redoStack=[];
 let restoringHistory=false;
 const HISTORY_LIMIT=100;
 let toolbarCollapsed=false;
 let rightPanelCollapsed=false;
+let functionRailCollapsed=false;
 let fallbackFullscreen=false;
 
 function updateLayoutControls(){
@@ -579,7 +1545,19 @@ function updateLayoutControls(){
    toolbarBtn.setAttribute("aria-expanded",String(!toolbarCollapsed));
   }
  }
- if(layout)layout.classList.toggle("right-collapsed",rightPanelCollapsed);
+ if(layout){
+  layout.classList.toggle("right-collapsed",rightPanelCollapsed);
+  layout.classList.toggle("rail-collapsed",functionRailCollapsed);
+ }
+ const rail=document.querySelector(".function-rail");
+ const railBtn=document.getElementById("functionRailToggleBtn");
+ if(rail)rail.classList.toggle("rail-collapsed",functionRailCollapsed);
+ if(railBtn){
+  railBtn.textContent=functionRailCollapsed?"▶":"◀";
+  railBtn.setAttribute("aria-expanded",String(!functionRailCollapsed));
+  railBtn.setAttribute("aria-label",functionRailCollapsed?"展開功能欄":"收合功能欄");
+  railBtn.title=functionRailCollapsed?"展開功能欄":"收合功能欄";
+ }
  if(rightBtn){
   const actionLabel=rightPanelCollapsed?"展開":"收合";
   rightBtn.innerHTML=[...actionLabel].map(ch=>`<span>${ch}</span>`).join("");
@@ -732,6 +1710,10 @@ document.addEventListener("keydown",handleDeleteKeydown);
 
 
 let dragging=null; // 拖曳流程圖：多選成員保持整批移動；不修改連線端點，只同步更新相關 bends。
+let resizeMode=false;
+let nodeResizeDrag=null;
+let unsavedNodeDraft=null;
+let nodeDraftDirty=false;
 let positions=loadPositions();
 let connections=loadConnections();
 // 開啟專案時保留 JSON 內已保存的 children 階層。
@@ -965,6 +1947,57 @@ function updateViewportAxis(){
  if(ly){ly.style.left=Math.max(2,panX+4)+"px";ly.style.top=(panY+4)+"px";}
 }
 
+function nodeVisualKind(n){
+ const k=String(n.kind||"").toLowerCase();
+ const t=String(n.type||"");
+ if(k==="decision"||t.includes("判斷")||t.includes("菱形"))return "decision";
+ if(k==="text"||t.includes("文字圖塊")||t.includes("文字說明")||t.includes("標籤"))return "text";
+ return "normal";
+}
+function createSpecialNode(kind){
+ if(previewConnections){setStatus("預覽┅模式下不可新增圖塊。");return;}
+ pushHistory();
+ const r=findNode(selectedId);
+ const n={id:uid(),name:kind==="decision"?"是否成立？":"是／否",type:kind==="decision"?"判斷節點":"文字圖塊",kind,showBackground:true,width:kind==="decision"?170:kind==="text"?110:180,height:kind==="decision"?120:kind==="text"?42:78,fontSize:kind==="text"?16:18,textColor:kind==="text"?"#fde68a":"#111827",backgroundColor:kind==="text"?"#92400e":"#ffffff",borderColor:kind==="text"?"#f59e0b":"#b8c0cc",opacity:1,note:"",content:"",children:[]};
+ data.children=data.children||[];data.children.push(n);
+ const base=r?ensurePosition(r.node.id):{x:300,y:240};
+ positions[n.id]={x:snap10(base.x+220),y:snap10(base.y+(kind==="decision"?40:100))};
+ selectedIds=[n.id];selectedId=n.id;selectedConn=null;selectedConnIds.clear();allCanvasSelected=false;
+ saveData();savePositions();render();
+ setStatus(kind==="decision"?"已新增判斷菱形；可在右側修改判斷文字，再從四邊連線點拉出是／否分支。":"已新增純文字圖塊；可在右側修改文字，並拖曳到引線附近作為「是／否」說明。");
+ setTimeout(()=>document.getElementById("fName")?.focus(),0);
+}
+
+function nodeStyleValues(n,visualKind){
+ let width=Number.isFinite(Number(n.width))?Math.max(24,Number(n.width)):(visualKind==="decision"?170:visualKind==="text"?110:180);
+ let height=Number.isFinite(Number(n.height))?Math.max(24,Number(n.height)):(visualKind==="decision"?120:visualKind==="text"?42:78);
+ const fontSize=Number.isFinite(Number(n.fontSize))?Math.max(8,Math.min(96,Number(n.fontSize))):(visualKind==="text"?16:18);
+ const opacity=Number.isFinite(Number(n.opacity))?Math.max(0,Math.min(1,Number(n.opacity))):1;
+ return {width,height,fontSize,opacity,textColor:n.textColor||"",backgroundColor:n.backgroundColor||"",borderColor:n.borderColor||""};
+}
+function colorOr(value,fallback){return /^#[0-9a-f]{3,8}$/i.test(String(value||""))?String(value):fallback;}
+
+function effectiveNodeTextColor(value,visualKind){
+ const raw=String(value||'').trim().toLowerCase();
+ const dark=document.body.classList.contains('dark');
+ // 舊版本建立的節點會把主題預設色直接寫入資料；這些不是使用者真正自訂的顏色，
+ // 因此在主題切換時必須重新套用對應的高對比預設色。
+ const legacyLightDefaults=new Set(['#000','#000000','#111827','#1f2937','#202733','#374151','#4b5563']);
+ const legacyDarkDefaults=new Set(['#f8fafc','#ffffff','#fff','#e5e7eb','#cbd5e1']);
+ if(dark && legacyLightDefaults.has(raw)) return '#f8fafc';
+ if(!dark && legacyDarkDefaults.has(raw) && visualKind!=='text') return '#111827';
+ if(!raw) return visualKind==='text' ? (dark?'#fde68a':'#92400e') : (dark?'#f8fafc':'#111827');
+ return value;
+}
+function effectiveNodeBackgroundColor(value,visualKind){
+ if(value) return value;
+ return visualKind==='text' ? '#fff7ed' : (document.body.classList.contains('dark') ? '#1e293b' : '#ffffff');
+}
+function effectiveNodeBorderColor(value,visualKind){
+ if(value) return value;
+ return visualKind==='text' ? '#f59e0b' : (document.body.classList.contains('dark') ? '#94a3b8' : '#b8c0cc');
+}
+
 function renderCanvas(){
  const diagram=document.getElementById("diagram");
  diagram.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;
@@ -983,15 +2016,23 @@ function renderCanvas(){
   if(isNodeHidden(n.id))return;
   const p=ensurePosition(n.id);
   const el=document.createElement("div");
-  el.className="flow-node"+(selectedIds.includes(n.id)?" selected":"")+(groupIdsForNode(n.id).size?" grouped":"");
+  const visualKind=nodeVisualKind(n);
+  const ns=nodeStyleValues(n,visualKind);
+  el.className="flow-node"+(visualKind==="decision"?" decision-node":visualKind==="text"?" text-node"+(n.showBackground===false?" no-background":""):" normal-node")+(selectedIds.includes(n.id)?" selected":"")+(groupIdsForNode(n.id).size?" grouped":"");
   el.dataset.id=n.id;el.style.left=p.x+"px";el.style.top=p.y+"px";
+  el.style.width=ns.width+"px";el.style.height=ns.height+"px";
+  if(visualKind==="decision"){el.style.setProperty("--decision-width",ns.width+"px");el.style.setProperty("--decision-height",ns.height+"px");}
+  el.style.setProperty("--node-font-size",ns.fontSize+"px");el.style.setProperty("--node-opacity",String(ns.opacity));
+  el.style.setProperty("--node-text-color",colorOr(effectiveNodeTextColor(ns.textColor,visualKind),visualKind==="text"?"#92400e":(document.body.classList.contains("dark")?"#f8fafc":"#111827")));
+  el.style.setProperty("--node-bg",colorOr(effectiveNodeBackgroundColor(ns.backgroundColor,visualKind),visualKind==="text"?"#fff7ed":(document.body.classList.contains("dark")?"#1e293b":"#ffffff")));
+  el.style.setProperty("--node-border",colorOr(effectiveNodeBorderColor(ns.borderColor,visualKind),visualKind==="text"?"#f59e0b":(document.body.classList.contains("dark")?"#94a3b8":"#b8c0cc")));
   el.innerHTML=
-    '<span class="dn-name">'+esc(n.name)+'</span>'+
-    '<span class="dn-type">'+esc(n.type||"一般")+'</span>'+
+    '<span class="node-inner"><span class="dn-name">'+esc(n.name)+'</span>'+
+    (visualKind==="text"?'':'<span class="dn-type">'+esc(n.type||"一般")+'</span>')+'</span>'+
     '<span class="handle handle-top" data-side="top" title="從上方拉出引線"></span>'+
     '<span class="handle handle-right" data-side="right" title="從右方拉出引線"></span>'+
     '<span class="handle handle-bottom" data-side="bottom" title="從下方拉出引線"></span>'+
-    '<span class="handle handle-left" data-side="left" title="從左方拉出引線"></span>';
+    '<span class="handle handle-left" data-side="left" title="從左方拉出引線"></span>'+'<span class="resize-handle" title="調整圖框大小"></span>';
   el.addEventListener("dblclick",e=>{
    if(e.target.closest?.(".handle,.input-handle"))return;
    if(suppressNextNodeDblClick){
@@ -1002,14 +2043,24 @@ function renderCanvas(){
    e.preventDefault();e.stopPropagation();toggleSubtree(n.id);
   });
   el.addEventListener("pointerdown",e=>{
-   // 預覽連線模式是完全唯讀的：節點不可選取、不可拖曳、不可拉引線。
+   // 預覽┅模式是完全唯讀的：節點不可選取、不可拖曳、不可拉引線。
    // 雙擊展開／收合仍由上方 dblclick 保留。
    if(previewConnections){
     e.preventDefault();
     e.stopImmediatePropagation();
     return;
    }
+   if(resizeMode && e.target.closest?.(".resize-handle")){
+    startNodeResize(e,n);
+    return;
+   }
+   if(resizeMode){
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+   }
    if(applyFlowchartMode){applyFlowchartAtEvent(e);return;}
+   if(applyFormatMode){applyFormatAtEvent(e);return;}
    onNodeDown(e);
   });
   diagram.appendChild(el);
@@ -1048,6 +2099,53 @@ function applyFlowchartAtEvent(e){
 // 套用模式下：先選接收方 → 按「套用子分支」→ 再點來源流程圖。
 // 點來源流程圖的任何方框區域都會命中，不需要點標題或特定文字。
 
+function updateApplyFormatButton(){
+ const b=document.getElementById("applyFormatBtn");
+ if(!b)return;
+ const active=!!applyFormatMode;
+ b.classList.toggle("apply-format-active",active);
+ b.setAttribute("aria-pressed",active?"true":"false");
+ b.textContent=active?"套用格式（請點目標）":"套用格式";
+ b.title=active?"已鎖定目前流程圖為格式目標，請點另一個流程圖作為格式來源；再按一次可取消。":"先選取要被套用格式的目標流程圖，再按此按鈕，最後點選提供格式的來源流程圖。";
+}
+function cancelApplyFormat(){
+ applyFormatMode=false;applyFormatSourceId=null;
+ document.body.classList.remove("apply-format-mode");
+ updateApplyFormatButton();
+}
+function startApplyFormat(){
+ if(previewConnections){setStatus("預覽┅模式下不能套用格式。");return;}
+ if(applyFormatMode){cancelApplyFormat();setStatus("已取消套用格式。");return;}
+ if(applyFlowchartMode){cancelApplyFlowchart();}
+ if(!selectedId||!nodeById(selectedId)){setStatus("請先選取要提供格式的流程圖。");return;}
+ applyFormatSourceId=selectedId;
+ applyFormatMode=true;
+ document.body.classList.add("apply-format-mode");
+ updateApplyFormatButton();
+ setStatus("已選取「"+(nodeById(selectedId)?.name||"流程圖")+"」作為格式套用目標；請點選提供格式的來源流程圖。");
+}
+function applyFormatAtEvent(e){
+ if(!applyFormatMode||!applyFormatSourceId)return true;
+ const nodeEl=e.currentTarget?.classList?.contains("flow-node")?e.currentTarget:e.target.closest?.(".flow-node");
+ if(!nodeEl||e.target.closest?.(".handle,.input-handle,.bend-point,.conn"))return true;
+ const sourceId=nodeEl.dataset.id;
+ if(!sourceId||sourceId===applyFormatSourceId){e.preventDefault();e.stopImmediatePropagation?.();setStatus("請點選另一個流程圖作為格式來源。");return false;}
+ // 目前選取的流程圖是「接收格式的目標」；使用者點到的流程圖才是格式來源。
+ const source=nodeById(sourceId),target=nodeById(applyFormatSourceId);
+ if(!source||!target){cancelApplyFormat();return false;}
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();
+ pushHistory();
+ const keys=["width","height","fontSize","textColor","backgroundColor","borderColor","opacity","showBackground"];
+ keys.forEach(k=>{if(Object.prototype.hasOwnProperty.call(source,k))target[k]=JSON.parse(JSON.stringify(source[k]));else if(k in target && k!=="showBackground")delete target[k];});
+ nodeDraftDirty=true;
+ selectedId=target.id;selectedIds=[target.id];selectedConn=null;selectedConnIds.clear();
+ cancelApplyFormat();
+ saveData();
+ render();
+ setStatus("已將「"+(source.name||"來源流程圖")+"」的外觀格式套用到「"+(target.name||"目標流程圖")+"」。請按「儲存修改」提交節點設定。");
+ return false;
+}
+
 function centerOf(id){
  const el=getNodeElementById(id);if(!el)return null;
  const p=positions[id];
@@ -1072,11 +2170,16 @@ function drawConnections(){
  // SVG contains only connections and bend handles. Clear it before every redraw
  // so moving a bend point cannot leave hundreds of old paths behind.
  svg.replaceChildren();
+ const defs=document.createElementNS("http://www.w3.org/2000/svg","defs");
+ const marker=document.createElementNS("http://www.w3.org/2000/svg","marker");
+ marker.setAttribute("id","flowArrow");marker.setAttribute("markerWidth","12");marker.setAttribute("markerHeight","12");marker.setAttribute("refX","10");marker.setAttribute("refY","6");marker.setAttribute("orient","auto");marker.setAttribute("markerUnits","strokeWidth");
+ const arrow=document.createElementNS("http://www.w3.org/2000/svg","path");arrow.setAttribute("d","M 0 0 L 12 6 L 0 12 z");arrow.setAttribute("fill",document.body.classList.contains("dark")?"#f8fafc":"#111827");marker.appendChild(arrow);defs.appendChild(marker);svg.appendChild(defs);
  connections.forEach(c=>{
   if(isNodeHidden(c.from)||isNodeHidden(c.to))return;
   const d=connectionPath(c);if(!d)return;
   const p=document.createElementNS("http://www.w3.org/2000/svg","path");
   p.setAttribute("d",d);
+  p.setAttribute("marker-end","url(#flowArrow)");
    p.setAttribute("class","conn"+(selectedConnIds.has(c.id)||selectedConn===c.id?" selected":"")+(previewConnections?" previewing":""));
    p.dataset.id=c.id;
    const selectThisConnection=e=>{
@@ -1095,6 +2198,7 @@ function drawConnections(){
    if(connectionSelectMode){
     const hit=document.createElementNS("http://www.w3.org/2000/svg","path");
     hit.setAttribute("d",d);hit.setAttribute("class","conn-hit");hit.dataset.id=c.id;
+     hit.setAttribute("aria-label","選取引線");
     hit.addEventListener("click",selectThisConnection);
     svg.appendChild(hit);
    }
@@ -1733,33 +2837,136 @@ function startConnection(e,from,side){
    : "正在從「"+side+"」拉直線引線；放開滑鼠到目標節點圓圈即可。"
  );
 }
+function startNodeResize(e,n){
+ if(previewConnections||!resizeMode)return;
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();
+ const startX=e.clientX,startY=e.clientY;
+ const startW=Number(n.width)||180,startH=Number(n.height)||78;
+ nodeResizeDrag={id:n.id,startX,startY,startW,startH,pointerId:e.pointerId};
+ const move=ev=>{if(!nodeResizeDrag||ev.pointerId!==nodeResizeDrag.pointerId)return;
+  const w=Math.max(24,Math.min(300,Math.round(startW+(ev.clientX-startX)/Math.max(.01,zoom))));
+  const h=Math.max(24,Math.min(300,Math.round(startH+(ev.clientY-startY)/Math.max(.01,zoom))));
+  n.width=w;n.height=h;nodeDraftDirty=true;renderCanvas();
+ };
+ const end=ev=>{if(!nodeResizeDrag||ev.pointerId!==nodeResizeDrag.pointerId)return;document.removeEventListener("pointermove",move,true);document.removeEventListener("pointerup",end,true);document.removeEventListener("pointercancel",end,true);nodeResizeDrag=null;renderEditor();};
+ document.addEventListener("pointermove",move,true);document.addEventListener("pointerup",end,true);document.addEventListener("pointercancel",end,true);
+}
+
 function renderEditor(){
  const box=document.getElementById("editor"),r=findNode(selectedId);
  if(!r){box.innerHTML='<div class="empty-state">請選取流程圖</div>';return}
  const n=r.node,p=ensurePosition(n.id);
- box.innerHTML='<div class="title">流程圖設定</div>'+
- '<div class="field"><label>名稱</label><input id="fName" value="'+esc(n.name)+'"></div>'+
- '<div class="field"><label>類型（顯示在節點下方）</label><input id="fType" value="'+esc(n.type||"一般")+'"></div>'+
+ if(!unsavedNodeDraft||unsavedNodeDraft.id!==n.id){unsavedNodeDraft={id:n.id,node:JSON.parse(JSON.stringify(n)),position:{x:p.x,y:p.y}};nodeDraftDirty=false;}
+ const visualKind=nodeVisualKind(n);
+ const editorTitle=visualKind==="text"?"文字圖塊設定":"流程圖設定";
+ const ns=nodeStyleValues(n,visualKind);
+ const safeHex=(value,fallback)=>{const v=String(value||'').trim();return /^#[0-9a-f]{6}$/i.test(v)?v:(/^#[0-9a-f]{3}$/i.test(v)?'#'+v.slice(1).split('').map(ch=>ch+ch).join(''):fallback);};
+ const colorField=(id,label,value)=>{const hex=safeHex(value,'#ffffff');return '<div class="field"><label>'+label+'</label><div class="editor-color-row"><input id="'+id+'" type="color" value="'+hex+'" aria-label="'+label+'"><input id="'+id+'Hex" class="editor-color-hex" type="text" value="'+hex+'" placeholder="#RRGGBB" aria-label="'+label+'色碼"></div></div>';};
+ const rangeField=(id,label,value,min,max,step,suffix)=>'<div class="field"><label>'+label+'</label><div class="editor-range-row"><input id="'+id+'" type="range" min="'+min+'" max="'+max+'" step="'+step+'" value="'+value+'"><output id="'+id+'Value" class="editor-range-value">'+value+(suffix||'')+'</output><input id="'+id+'Manual" class="range-manual" type="number" value="'+value+'" aria-label="'+label+'數值" step="1"></div></div>';
+ const decisionLock=visualKind==="decision";
+ const bgToggle=visualKind==="text"?'<div class="field"><div class="editor-switch"><span class="editor-switch-label">顯示背景</span><label><input id="fTextBackground" type="checkbox" '+(n.showBackground!==false?'checked':'')+'><span class="editor-switch-ui" aria-hidden="true"></span></label></div><div class="field-label-help">關閉後只保留文字。</div></div>':'';
+ box.innerHTML='<div class="title">'+editorTitle+'</div>'+
+ '<div class="field"><label>名稱</label><input id="fName" value="'+esc(n.name)+'" '+(decisionLock?'disabled':'')+'></div>'+
+ '<div class="field"><label>類型（判斷／文字圖塊可用「判斷節點」或「文字圖塊」）</label><input id="fType" value="'+esc(n.type||"一般")+'" '+(decisionLock?'disabled':'')+'></div>'+
+ rangeField("fWidth",decisionLock?"菱形虛擬寬度":"圖框寬度",ns.width,24,300,5,"px")+rangeField("fHeight",decisionLock?"菱形虛擬高度":"圖框高度",ns.height,24,300,5,"px")+
+ rangeField("fFontSize","字體大小",ns.fontSize,8,96,1,"px")+
+ colorField("fTextColor","文字顏色",ns.textColor||(visualKind==="text"?"#92400e":"#111827"))+
+ colorField("fBackgroundColor","背景顏色",ns.backgroundColor||(visualKind==="text"?"#fff7ed":"#ffffff"))+
+ colorField("fBorderColor","邊框顏色",ns.borderColor||"#b8c0cc")+
+ bgToggle+
+ rangeField("fOpacity","透明度",Math.round(ns.opacity*100),0,100,1,"%")+
  '<div class="field"><label>備註</label><textarea id="fNote">'+esc(n.note||"")+'</textarea></div>'+
  '<div class="field"><label>詳細資料</label><textarea id="fContent">'+esc(n.content||"")+'</textarea></div>'+
  '<div class="field"><label>節點位置 X / Y（全域10單位軸線端點）</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input id="fX" type="number" value="'+Math.round(p.x)+'"><input id="fY" type="number" value="'+Math.round(p.y)+'"></div></div>'+
- '<div class="actions"><button class="primary" onclick="saveNode()">儲存修改</button><button class="primary" onclick="duplicateNode()">複製流程圖</button><button id="applySubbranchBtn" onclick="startApplyFlowchart()" aria-pressed="false">套用子分支</button><button class="danger" onclick="removeNode()">流程圖刪除</button></div>'+
-  '<div class="help">節點與引線轉彎點共用全域10單位座標系：流程圖左上角定位端點與引線轉彎點本身都吸附到背景定位點上的軸線端點（全域10單位，0、10、20、30…）；「複製流程圖」只複製目前流程圖；「套用子分支」會將下一個點選流程圖的所有子分支套用到目前選取的流程圖，來源本身不複製，並複製相關引線；流程圖連點兩下可展開／收合所有子孫分支；沒有有效父引線的新增／複製流程圖視為獨立父流程；節點四邊都有隱形連線點；只有拉引線時才顯示；點擊引線後可刪除；選取引線後可連續新增轉彎點。新增分支會立即出現，每個節點都有自己的座標。</div>';
- if(previewConnections)setPreviewReadOnlyUI();
+ '<div class="help">節點與引線轉彎點共用全域10單位座標系；圖框寬高、文字大小、文字顏色、背景顏色、邊框顏色與透明度皆可調整。文字圖塊可關閉背景，關閉後只顯示文字。</div>'+
+ '<div class="actions"><button class="primary" onclick="saveNode()">儲存修改</button><button class="primary" onclick="duplicateNode()">複製</button><div class="format-actions"><button id="applySubbranchBtn" onclick="startApplyFlowchart()" aria-pressed="false">套用子分支</button><button id="applyFormatBtn" onclick="startApplyFormat()" aria-pressed="false">套用格式</button><button class="danger" onclick="removeNode()">刪除</button></div></div>';
+ const liveRefresh=()=>{
+  nodeDraftDirty=true;
+  renderCanvas();
+ };
+ ["fWidth","fHeight","fFontSize","fOpacity"].forEach(id=>{
+  const input=document.getElementById(id),manual=document.getElementById(id+"Manual"),out=document.getElementById(id+"Value");
+  if(!input)return;
+  const applyValue=(raw,fromManual=false)=>{
+   let value=Number(raw); if(!Number.isFinite(value))return;
+   if(id==="fWidth"||id==="fHeight"){
+    if(!fromManual)value=Math.max(24,Math.min(300,Math.round(value/5)*5));
+    else value=Math.max(24,Math.round(value));
+   }
+   if(id==="fFontSize")value=Math.max(8,Math.min(96,Math.round(value)));
+   if(id==="fOpacity")value=Math.max(0,Math.min(100,value));
+   if(id==="fWidth")n.width=value;
+   if(id==="fHeight")n.height=value;
+   if(id==="fFontSize")n.fontSize=value;
+   if(id==="fOpacity")n.opacity=value/100;
+   input.value=String(value);if(manual)manual.value=String(value);if(out)out.textContent=value+(id==="fOpacity"?"%":"px");
+   liveRefresh();
+  };
+  input.addEventListener("input",()=>applyValue(input.value,false));
+  if(manual)manual.addEventListener("input",()=>applyValue(manual.value,true));
+ });
+ ["fTextColor","fBackgroundColor","fBorderColor"].forEach(id=>{
+  const picker=document.getElementById(id),hex=document.getElementById(id+"Hex");
+  if(!picker||!hex)return;
+  const applyColor=(value)=>{
+   const v=String(value||"").trim();
+   if(!/^#[0-9a-f]{6}$/i.test(v))return;
+   const normalized=v.toUpperCase();
+   picker.value=normalized;hex.value=normalized;
+   if(id==="fTextColor")n.textColor=normalized;
+   if(id==="fBackgroundColor")n.backgroundColor=normalized;
+   if(id==="fBorderColor")n.borderColor=normalized;
+   liveRefresh();
+  };
+  picker.addEventListener("input",()=>applyColor(picker.value));
+  hex.addEventListener("input",()=>{if(/^#[0-9a-f]{6}$/i.test(hex.value.trim()))applyColor(hex.value);});
+ });
+ ["fName","fType","fNote","fContent","fX","fY"].forEach(id=>{
+  const input=document.getElementById(id);
+  if(!input)return;
+  input.addEventListener("input",()=>{
+   if(id==="fName")n.name=input.value;
+   if(id==="fType")n.type=input.value;
+   if(id==="fNote")n.note=input.value;
+   if(id==="fContent")n.content=input.value;
+   if(id==="fX"||id==="fY"){const q=ensurePosition(n.id);positions[n.id]={x:id==="fX"?Math.round(Number(input.value)||0):q.x,y:id==="fY"?Math.round(Number(input.value)||0):q.y};savePositions();}
+   saveData();
+   renderCanvas();
+  });
+ });
+ if(visualKind==="text"){
+  const bgToggleInput=document.getElementById("fTextBackground");
+  if(bgToggleInput)bgToggleInput.addEventListener("change",()=>{
+   n.showBackground=!!bgToggleInput.checked;
+   saveData();renderCanvas();
+  });
+ }
+ updateApplyFormatButton();
+if(previewConnections)setPreviewReadOnlyUI();
 }
 function saveNode(){
  const r=findNode(selectedId);if(!r)return;
- const name=document.getElementById("fName").value.trim()||"未命名";
- const type=document.getElementById("fType").value.trim()||"一般";
+ const name=nodeVisualKind(r.node)==="decision"?r.node.name:(document.getElementById("fName")?.value.trim()||"未命名");
+ const type=nodeVisualKind(r.node)==="decision"?r.node.type:(document.getElementById("fType")?.value.trim()||"一般");
  const note=document.getElementById("fNote").value;
  const content=document.getElementById("fContent").value;
- if(r.node.name===name&&r.node.type===type&&r.node.note===note&&r.node.content===content){
+ const visualKind=nodeVisualKind(r.node);
+ const width=Math.max(24,Number(document.getElementById("fWidthManual")?.value)||Number(r.node.width)||180);
+ const height=Math.max(24,Number(document.getElementById("fHeightManual")?.value)||Number(r.node.height)||78);
+ const fontSize=Math.max(8,Math.min(96,Number(document.getElementById("fFontSize")?.value)||Number(r.node.fontSize)||18));
+ const opacity=Math.max(0,Math.min(100,Number(document.getElementById("fOpacity")?.value)||0))/100;
+ const textColor=document.getElementById("fTextColor")?.value.trim()||"";
+ const backgroundColor=document.getElementById("fBackgroundColor")?.value.trim()||"";
+ const borderColor=document.getElementById("fBorderColor")?.value.trim()||"";
+ if(!nodeDraftDirty&&r.node.name===name&&r.node.type===type&&r.node.note===note&&r.node.content===content&&Number(r.node.width)===width&&Number(r.node.height)===height&&Number(r.node.fontSize)===fontSize&&Number(r.node.opacity)===opacity&&r.node.textColor===textColor&&r.node.backgroundColor===backgroundColor&&r.node.borderColor===borderColor){
   setStatus("沒有需要儲存的變更。");
   return;
  }
  pushHistory();
  r.node.name=name;r.node.type=type;r.node.note=note;r.node.content=content;
- saveData();applyPosition(false);render();setStatus("節點資料已儲存。");
+ r.node.width=width;r.node.height=height;r.node.fontSize=fontSize;r.node.opacity=opacity;
+ r.node.textColor=textColor;r.node.backgroundColor=backgroundColor;r.node.borderColor=borderColor;
+ saveData();applyPosition(false);render();nodeDraftDirty=false;unsavedNodeDraft=null;setStatus("節點資料已儲存。");
 }
 function updateApplySubbranchButton(){
  const b=document.getElementById("applySubbranchBtn");
@@ -1895,7 +3102,7 @@ function applyFlowchartToTarget(destinationId,templateId){
   destination.children=destination.children||[];
   destination.children.push(...copies);
 
-  // 2. 每一個複製流程圖都使用「來源相對於來源根」的座標差，
+  // 2. 每一個複製都使用「來源相對於來源根」的座標差，
   //    直接套到「接收方相對於接收方根」的位置。
   function place(original,copied){
    const op=ensurePosition(original.id);
@@ -2195,7 +3402,7 @@ async function saveProject(saveAs){
    writeProjectToHandle(currentFileHandle).then(()=>{
     const savedName=currentFileHandle.name||defaultName;
     setStatus("已儲存檔案："+savedName);
-    showSaveSuccessModal(savedName);
+    showSaveSuccessModal(savedName);nodeDraftDirty=false;unsavedNodeDraft=null;
    }).catch(e=>{
     console.error("save project failed",e);
     setStatus("儲存失敗："+(e?.message||"未知錯誤"));
@@ -2221,7 +3428,7 @@ async function saveProject(saveAs){
     currentFileHandle=handle;
     setFileName(handle.name);
     setStatus("已另存新檔："+handle.name);
-    showSaveSuccessModal(handle.name);
+    showSaveSuccessModal(handle.name);nodeDraftDirty=false;unsavedNodeDraft=null;
    }catch(e){
     if(e&&e.name==="AbortError")return;
     console.error("save as failed",e);
@@ -2232,7 +3439,7 @@ async function saveProject(saveAs){
  }
  downloadProject(defaultName);
  setStatus("已另存新檔。");
- showSaveSuccessModal(defaultName);
+ showSaveSuccessModal(defaultName);nodeDraftDirty=false;unsavedNodeDraft=null;
 }
 
 function collectNodeIds(root){
@@ -2552,7 +3759,7 @@ document.addEventListener("pointerdown",e=>{
  if(ok)cancelApplyFlowchart();
 },true);
 
-// 預覽連線是「看圖」模式：不論按到節點、引線或折點，都交給畫布平移。
+// 預覽┅是「看圖」模式：不論按到節點、引線或折點，都交給畫布平移。
 // 在 capture 階段攔截，能確實避開節點／引線原本的編輯拖曳監聽器。
 let previewPan=null,previewLastTap=null;
 const previewCanvas=document.getElementById("canvasScroll");
@@ -2597,22 +3804,14 @@ previewCanvas.addEventListener("dblclick",e=>{
  if(previewConnections&&e.target.closest?.(".flow-node")){e.preventDefault();e.stopImmediatePropagation();}
 },true);
 
+let canvasPanJustFinished=false;
 document.getElementById("canvasScroll").addEventListener("pointerdown",e=>{
  if(pinchGesture)return;
  if(e.button!==0)return;
  const target=e.target;
  if(target.closest?.(".flow-node")||target.closest?.(".bend-point")||target.closest?.(".conn"))return;
- // 點任何空白背景都取消「全部」選取：流程圖、引線、多選、Ctrl+A。
- // 注意：只有真正的畫布空白才會進到這裡；流程圖、轉彎點、引線已在上方排除。
- selectedIds=[];
- selectedId=null;
- selectedConn=null;
- selectedConnIds.clear();
- allCanvasSelected=false;
- hideAlignmentGuides();
- hideNodeGridAnchor();
- render();
- setStatus("已取消全部選取。");
+  // 空白處先只啟動畫布平移；不要在 pointerdown 立即取消選取。
+  // 只有最後確認為「沒有拖曳」的空白點擊，才取消全部選取。
  const s=document.getElementById("canvasScroll");
  s.focus({preventScroll:true});
  const sx=e.clientX,sy=e.clientY,px=panX,py=panY;
@@ -2630,6 +3829,14 @@ document.getElementById("canvasScroll").addEventListener("pointerdown",e=>{
    try{s.releasePointerCapture(e.pointerId)}catch(_){}
    document.removeEventListener("pointermove",move);
    document.removeEventListener("pointerup",up);
+   if(moved){
+      canvasPanJustFinished=true;
+      setTimeout(()=>{canvasPanJustFinished=false;},0);
+    }else{
+      selectedIds=[];selectedId=null;selectedConn=null;selectedConnIds.clear();
+      allCanvasSelected=false;hideAlignmentGuides();hideNodeGridAnchor();render();
+      setStatus("已取消全部選取。");
+    }
  };
  document.addEventListener("pointermove",move);
  document.addEventListener("pointerup",up);
@@ -2641,7 +3848,7 @@ document.getElementById("canvasScroll").addEventListener("pointerdown",e=>{
 // 所有會改資料的入口在預覽時都加上程式層防護；不只靠按鈕變灰。
 function previewEditAllowed(){
  if(!previewConnections)return true;
- setStatus("預覽連線已開啟：目前為唯讀模式。可拖曳平移畫布，或雙擊流程圖展開／收合。");
+ setStatus("預覽┅已開啟：目前為唯讀模式。可拖曳平移畫布，或雙擊流程圖展開／收合。");
  return false;
 }
 function setPreviewReadOnlyUI(){
@@ -2667,19 +3874,75 @@ function setPreviewReadOnlyUI(){
   hideBendGridAnchor();
   clearBrowserSelection();
  }
- const ids=["newFileBtn","openFileBtn","saveFileBtn","saveAsFileBtn","undoBtn","redoBtn","renameBtn","addNodeBtn","deleteConnBtn","addBendBtn","selectConnBtn","groupBtn","ungroupBtn","expandAllBtn","collapseAllBtn"];
+ const ids=["newFileBtn","openFileBtn","saveFileBtn","saveAsFileBtn","undoBtn","redoBtn","renameBtn","addNodeBtn","addDecisionBtn","addTextBlockBtn","resizeModeBtn","deleteConnBtn","addBendBtn","selectConnBtn","groupBtn","ungroupBtn","expandAllBtn","collapseAllBtn"];
  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=previewConnections;});
  document.querySelectorAll("#editor input,#editor textarea,#editor select,#editor button,#fileInput").forEach(el=>el.disabled=previewConnections);
- if(previewConnections)cancelApplyFlowchart();
+ if(previewConnections){cancelApplyFlowchart();resizeMode=false;document.body.classList.remove("resize-mode");const rb=document.getElementById("resizeModeBtn");if(rb){rb.classList.remove("primary");rb.setAttribute("aria-pressed","false");}}
 }
+function restoreUnsavedNodeDraft(shouldRender=true){
+ if(!nodeDraftDirty||!unsavedNodeDraft)return true;
+ const ok=confirm("目前有尚未儲存的設定，是否放棄修改？");
+ if(!ok)return false;
+ const r=findNode(unsavedNodeDraft.id);
+ if(r){Object.keys(r.node).forEach(k=>delete r.node[k]);Object.assign(r.node,JSON.parse(JSON.stringify(unsavedNodeDraft.node)));}
+ if(unsavedNodeDraft.position)positions[unsavedNodeDraft.id]={...unsavedNodeDraft.position};
+ nodeDraftDirty=false;unsavedNodeDraft=null;
+ if(shouldRender)render();
+ return true;
+}
+
+// 只要操作會離開目前右側設定對象，就先處理尚未儲存的草稿。
+// 使用 capture 階段攔截，避免既有流程圖／引線／空白畫布 handler
+// 先改變選取狀態，造成提示出現時畫面已經切換。
+function isInsideEditor(target){
+ return !!target?.closest?.("#editor");
+}
+function targetNodeIdFromEvent(target){
+ return target?.closest?.(".flow-node")?.dataset?.id||null;
+}
+function guardLeavingNodeEditor(e){  if(e.type==="click"&&canvasPanJustFinished)return true;  if(!nodeDraftDirty||!unsavedNodeDraft||previewConnections)return true;
+ if(isInsideEditor(e.target))return true;
+ const targetNodeId=targetNodeIdFromEvent(e.target);
+ // 點回目前正在編輯的同一個節點，仍然留在同一個設定介面，不提示。
+ if(targetNodeId&&targetNodeId===unsavedNodeDraft.id)return true;
+
+ // 畫布空白區可能只是用來平移畫面；pointerdown 時不能把它誤判成
+ // 「離開設定介面」，否則單純拖曳畫布也會跳出未儲存提示。
+ // 只有真正可能改變選取／設定對象的物件，才在 pointerdown 階段攔截。
+ if(e.type==="pointerdown"){
+  const target=e.target?.closest?.(".flow-node,.conn,.bend-point,.handle,.input-handle");
+  if(!target)return true;
+ }
+
+ // click 事件只會在真正點擊時發生；此時才處理畫布空白、工具列或其他
+ // 會讓右側設定介面消失的操作。單純 pointermove/pointerdown 平移不會提示。
+ const ok=restoreUnsavedNodeDraft(false);
+ if(!ok){
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  return false;
+ }
+ return true;
+}
+document.addEventListener("pointerdown",guardLeavingNodeEditor,true);
+document.addEventListener("click",guardLeavingNodeEditor,true);
+document.addEventListener("keydown",e=>{
+ if(!nodeDraftDirty||!unsavedNodeDraft||previewConnections||isInsideEditor(e.target))return;
+ if(e.key!=="Enter"&&e.key!==" ")return;
+ guardLeavingNodeEditor(e);
+},true);
 for(const name of ["groupSelected","ungroupSelected","addChild","deleteSelectedConnections","addBendPoint","saveNode","duplicateNode","startApplyFlowchart","removeNode","newProject","openProject","saveProject","renameProject","undo","redo","openProjectFromFile","readProjectFile","applyPosition"]){
  const original=window[name];
- if(typeof original==="function")window[name]=function(...args){if(!previewEditAllowed())return false;return original.apply(this,args);};
+ if(typeof original==="function")window[name]=function(...args){if(!previewEditAllowed())return false;if(["newProject","openProject","openProjectFromFile","readProjectFile","undo","redo","renameProject"].includes(name)&&!restoreUnsavedNodeDraft())return false;return original.apply(this,args);};
 }
+window.addEventListener("beforeunload",e=>{if(nodeDraftDirty){e.preventDefault();e.returnValue="尚有未儲存的設定。";}});
 
 document.getElementById("groupBtn").addEventListener("click",groupSelected);
 document.getElementById("ungroupBtn").addEventListener("click",ungroupSelected);
 document.getElementById("addNodeBtn").addEventListener("click",addChild);
+document.getElementById("addDecisionBtn").addEventListener("click",()=>createSpecialNode("decision"));
+document.getElementById("addTextBlockBtn").addEventListener("click",()=>createSpecialNode("text"));
+document.getElementById("resizeModeBtn").addEventListener("click",()=>{resizeMode=!resizeMode;document.body.classList.toggle("resize-mode",resizeMode);const b=document.getElementById("resizeModeBtn");b.classList.toggle("primary",resizeMode);b.setAttribute("aria-pressed",String(resizeMode));setStatus(resizeMode?"已開啟調整圖框模式：拖曳流程圖右下角控制點調整寬高。":"已關閉調整圖框模式。");});
 function setConnectionSelectMode(next){
  connectionSelectMode=next;
  const b=document.getElementById("selectConnBtn");
@@ -2688,7 +3951,7 @@ function setConnectionSelectMode(next){
  b.setAttribute("aria-pressed",String(connectionSelectMode));
  diagram.classList.toggle("connection-select-mode",connectionSelectMode);
  drawConnections();
- setStatus(connectionSelectMode?"已開啟單獨選取引線：可直接點選任一引線，流程圖節點暫時不會攔截點擊。":"已關閉單獨選取引線。");
+ setStatus(connectionSelectMode?"已開啟單選┅：可直接點選任一引線，流程圖節點暫時不會攔截點擊。":"已關閉單選┅。");
 }
 document.getElementById("selectConnBtn").addEventListener("click",()=>setConnectionSelectMode(!connectionSelectMode));
 document.getElementById("connectBtn").addEventListener("click",e=>{
@@ -2696,7 +3959,7 @@ document.getElementById("connectBtn").addEventListener("click",e=>{
  if(previewConnections&&connectionSelectMode)setConnectionSelectMode(false);
  e.currentTarget.dataset.on=previewConnections?"1":"0";
  e.currentTarget.classList.toggle("primary",previewConnections);
- e.currentTarget.textContent="預覽連線";
+ e.currentTarget.textContent="預覽┅";
  setPreviewReadOnlyUI();
  drawConnections();
  setStatus(previewConnections?"已開啟連線預覽：引線會依父流程圖 → 子孫分支方向流動。":"已關閉連線預覽。" );
@@ -2715,6 +3978,10 @@ document.getElementById("collapseAllBtn").addEventListener("click",collapseAll);
 
 document.getElementById("toolbarToggleBtn").addEventListener("click",()=>{
  toolbarCollapsed=!toolbarCollapsed;
+ updateLayoutControls();
+});
+document.getElementById("functionRailToggleBtn").addEventListener("click",()=>{
+ functionRailCollapsed=!functionRailCollapsed;
  updateLayoutControls();
 });
 document.getElementById("rightPanelToggleBtn").addEventListener("click",()=>{
@@ -2799,5 +4066,46 @@ document.addEventListener("keydown",handleFileShortcuts);
 </script>
 
 <div id="saveSuccessModal" role="dialog" aria-modal="true" aria-labelledby="saveSuccessTitle"><div class="save-success-box"><div id="saveSuccessTitle" class="save-success-title">儲存成功</div><div id="saveSuccessText" class="save-success-text">檔案已成功儲存。</div><button type="button" onclick="closeSaveSuccessModal()">確定</button></div></div>
+
+<style id="collapse-button-align-fix">
+/* 左側按鈕的垂直位置由下方同步程式對齊到「▼」按鈕 */
+.function-rail.rail-collapsed > #functionRailToggleBtn {
+  position: fixed !important;
+  transform: none !important;
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+}
+</style>
+<script id="collapse-button-align-script">
+(function () {
+  function alignRailToggleToToolbarToggle() {
+    const rail = document.querySelector('.function-rail.rail-collapsed');
+    const railBtn = document.getElementById('functionRailToggleBtn');
+    const toolbarBtn = document.getElementById('toolbarToggleBtn');
+    if (!rail || !railBtn || !toolbarBtn) return;
+
+    const toolbar = toolbarBtn.getBoundingClientRect();
+    const gap = 6;
+    railBtn.style.top = toolbar.top + 'px';
+    railBtn.style.left = Math.max(4, toolbar.left - railBtn.offsetWidth - gap) + 'px';
+  }
+
+  function scheduleAlign() {
+    requestAnimationFrame(alignRailToggleToToolbarToggle);
+  }
+
+  window.addEventListener('resize', scheduleAlign, { passive: true });
+
+  const observer = new MutationObserver(scheduleAlign);
+  observer.observe(document.documentElement, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'style']
+  });
+
+  scheduleAlign();
+})();
+</script>
+
 </body>
 </html>
