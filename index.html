@@ -452,7 +452,7 @@ header>#themeBtn{position:absolute;top:50%;right:20px;z-index:3;transform:transl
  #connectBtn{right:max(10px,env(safe-area-inset-right))}
 }
 /* 手機友善的單獨引線選取模式：節點不攔截點擊，引線有較大的透明命中區。 */
-.conn-hit{fill:none;stroke:transparent;stroke-width:96px;stroke-linecap:round;stroke-linejoin:round;pointer-events:stroke;cursor:pointer;touch-action:manipulation}
+.conn-hit{display:none!important;pointer-events:none!important}
 .diagram.connection-select-mode .flow-node,.diagram.connection-select-mode .bend-point{pointer-events:none}
 .diagram.connection-select-mode .conn{cursor:pointer}
 
@@ -665,6 +665,31 @@ body.dark .flow-node .dn-type,body.dark .flow-node .sub{
 /* 讓主題切換時 SVG marker、選取框與輔助線也同步 */
 body.dark .flow-svg path,body.dark .flow-svg line,body.dark .conn{stroke:var(--connector)!important}
 body.dark .flow-svg .arrow,body.dark .conn-arrow{fill:var(--connector-arrow)!important}
+
+/* v1.1.73：單選引線的選取顏色固定，深／淺色模式完全一致。 */
+.conn.selected,
+body.dark .conn.selected{
+  stroke:#6366f1!important;
+  stroke-width:4!important;
+  opacity:1!important;
+}
+
+
+/* v1.1.73：命中區必須保持完全透明，避免被全域 SVG 線條樣式覆蓋。 */
+.flow-svg .conn-hit,
+body.dark .flow-svg .conn-hit{
+  /* 使用幾乎不可見但仍可被瀏覽器進行觸控命中的描邊；
+     完全 transparent/opacity:0 在部分手機瀏覽器不會進行 stroke hit-test。 */
+  stroke:#000!important;
+  stroke-opacity:.001!important;
+  fill:none!important;
+  pointer-events:stroke!important;
+  stroke-width:160px!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+  touch-action:manipulation!important;
+}
+
 </style>
 
 <style id="decisionDiamondSelectionFix">
@@ -1326,14 +1351,14 @@ body:not(.dark) .function-rail.rail-collapsed {
   flex:0 0 auto !important;
   white-space:nowrap !important;
 }
-/* v1.1.65：右上角收合按鈕稍微向右、向下調整位置。 */
+/* v1.1.73：右上角收合按鈕稍微向右、向下調整位置。 */
 .editor-layout:not(.right-collapsed) #rightPanelToggleBtn{
   transform:translate(-28px,28px) !important;
 }
 </style>
 
 <style id="v1-1-44-right-panel-button-size-fix">
-/* v1.1.65：右上角收合按鈕改為與側欄垂直按鈕一致的窄尺寸與邊框呈現。 */
+/* v1.1.73：右上角收合按鈕改為與側欄垂直按鈕一致的窄尺寸與邊框呈現。 */
 .editor-layout:not(.right-collapsed) #rightPanelToggleBtn{
   box-sizing:border-box !important;
   width:32px !important;
@@ -1350,7 +1375,7 @@ body:not(.dark) .function-rail.rail-collapsed {
 </style>
 
 <style id="text-node-selection-border-fix">
-/* v1.1.65：所有可選取圖塊都恢復一致的藍色選取外框。
+/* v1.1.73：所有可選取圖塊都恢復一致的藍色選取外框。
    文字圖塊保留自身橘色虛線內框；一般節點沿用原本 selected 樣式。
    菱形節點由既有 decision-node selected 規則獨立處理。 */
 .flow-node.selected:not(.decision-node){
@@ -1361,7 +1386,7 @@ body:not(.dark) .function-rail.rail-collapsed {
 
 
 <style id="text-node-selection-appearance-fix">
-/* v1.1.65：文字圖塊選取時，只保留藍色外層選取框；
+/* v1.1.73：文字圖塊選取時，只保留藍色外層選取框；
    文字、背景、內部邊框、內距完全沿用未選取的文字圖塊樣式。 */
 .flow-node.text-node.selected{
   background:#fff7ed !important;
@@ -1391,7 +1416,7 @@ body.dark .flow-node.text-node.selected .dn-type{
 
 
 <style id="node-dimension-box-sizing-fix">
-/* v1.1.65：圖框寬高以節點外框尺寸為準。
+/* v1.1.73：圖框寬高以節點外框尺寸為準。
    避免 border / padding 在選取狀態下改變實際顯示尺寸。 */
 .flow-node{
   box-sizing:border-box !important;
@@ -1404,8 +1429,8 @@ body.dark .flow-node.text-node.selected .dn-type{
 </head>
 <body class="dark">
 <header>
-  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.65</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
-  <span class="badge">v1.1.65</span>
+  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.73</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
+  <span class="badge">v1.1.73</span>
   <div class="toolbar">
     <button id="newFileBtn" type="button" onclick="newProject()">新增檔案</button>
     <button id="openFileBtn" onclick="openProject()">開啟舊檔</button>
@@ -2195,14 +2220,7 @@ function drawConnections(){
     drawConnections();
    };
    p.addEventListener("click",selectThisConnection);
-   if(connectionSelectMode){
-    const hit=document.createElementNS("http://www.w3.org/2000/svg","path");
-    hit.setAttribute("d",d);hit.setAttribute("class","conn-hit");hit.dataset.id=c.id;
-     hit.setAttribute("aria-label","選取引線");
-    hit.addEventListener("click",selectThisConnection);
-    svg.appendChild(hit);
-   }
-   svg.appendChild(p);
+    svg.appendChild(p);
   (c.bends||[]).forEach((b,i)=>{
    const bp=document.createElementNS("http://www.w3.org/2000/svg","circle");
    bp.setAttribute("cx",b.x);bp.setAttribute("cy",b.y);bp.setAttribute("r",5);
@@ -4104,6 +4122,41 @@ document.addEventListener("keydown",handleFileShortcuts);
   });
 
   scheduleAlign();
+})();
+
+/* v1.1.73：移除會攔截點擊的命中覆蓋路徑，改由 SVG 捕獲階段判定最近引線。 */
+(function installConnectionProximitySelection(){
+ const svg=document.getElementById("diagramSvg");
+ if(!svg)return;
+ svg.addEventListener("click",function(e){
+  if(!connectionSelectMode||previewConnections)return;
+  const ctm=svg.getScreenCTM?.();
+  if(!ctm)return;
+  let best=null,bestScreenDistance=Infinity;
+  const tolerance=72;
+  for(const c of connections||[]){
+   if(isNodeHidden(c.from)||isNodeHidden(c.to))continue;
+   const d=connectionPath(c);
+   if(!d)continue;
+   const probe=document.createElementNS("http://www.w3.org/2000/svg","path");
+   probe.setAttribute("d",d);
+   const total=probe.getTotalLength?.()||0;
+   if(!total)continue;
+   const steps=Math.min(320,Math.max(32,Math.ceil(total/12)));
+   for(let i=0;i<=steps;i++){
+    const q=probe.getPointAtLength(total*i/steps);
+    const screen=new DOMPoint(q.x,q.y).matrixTransform(ctm);
+    const distance=Math.hypot(screen.x-e.clientX,screen.y-e.clientY);
+    if(distance<bestScreenDistance){bestScreenDistance=distance;best=c;}
+   }
+  }
+  if(best&&bestScreenDistance<=tolerance){
+   e.preventDefault();e.stopImmediatePropagation();
+   selectedConnIds.clear();selectedConn=best.id;
+   setStatus("已選取引線："+(nodeById(best.from)?.name||best.from)+" → "+(nodeById(best.to)?.name||best.to));
+   drawConnections();
+  }
+ },true);
 })();
 </script>
 
