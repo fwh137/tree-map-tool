@@ -666,7 +666,7 @@ body.dark .flow-node .dn-type,body.dark .flow-node .sub{
 body.dark .flow-svg path,body.dark .flow-svg line,body.dark .conn{stroke:var(--connector)!important}
 body.dark .flow-svg .arrow,body.dark .conn-arrow{fill:var(--connector-arrow)!important}
 
-/* v1.1.73：單選引線的選取顏色固定，深／淺色模式完全一致。 */
+/* v1.1.75：單選引線的選取顏色固定，深／淺色模式完全一致。 */
 .conn.selected,
 body.dark .conn.selected{
   stroke:#6366f1!important;
@@ -675,7 +675,7 @@ body.dark .conn.selected{
 }
 
 
-/* v1.1.73：命中區必須保持完全透明，避免被全域 SVG 線條樣式覆蓋。 */
+/* v1.1.75：命中區必須保持完全透明，避免被全域 SVG 線條樣式覆蓋。 */
 .flow-svg .conn-hit,
 body.dark .flow-svg .conn-hit{
   /* 使用幾乎不可見但仍可被瀏覽器進行觸控命中的描邊；
@@ -1351,14 +1351,14 @@ body:not(.dark) .function-rail.rail-collapsed {
   flex:0 0 auto !important;
   white-space:nowrap !important;
 }
-/* v1.1.73：右上角收合按鈕稍微向右、向下調整位置。 */
+/* v1.1.75：右上角收合按鈕稍微向右、向下調整位置。 */
 .editor-layout:not(.right-collapsed) #rightPanelToggleBtn{
   transform:translate(-28px,28px) !important;
 }
 </style>
 
 <style id="v1-1-44-right-panel-button-size-fix">
-/* v1.1.73：右上角收合按鈕改為與側欄垂直按鈕一致的窄尺寸與邊框呈現。 */
+/* v1.1.75：右上角收合按鈕改為與側欄垂直按鈕一致的窄尺寸與邊框呈現。 */
 .editor-layout:not(.right-collapsed) #rightPanelToggleBtn{
   box-sizing:border-box !important;
   width:32px !important;
@@ -1375,7 +1375,7 @@ body:not(.dark) .function-rail.rail-collapsed {
 </style>
 
 <style id="text-node-selection-border-fix">
-/* v1.1.73：所有可選取圖塊都恢復一致的藍色選取外框。
+/* v1.1.75：所有可選取圖塊都恢復一致的藍色選取外框。
    文字圖塊保留自身橘色虛線內框；一般節點沿用原本 selected 樣式。
    菱形節點由既有 decision-node selected 規則獨立處理。 */
 .flow-node.selected:not(.decision-node){
@@ -1386,7 +1386,7 @@ body:not(.dark) .function-rail.rail-collapsed {
 
 
 <style id="text-node-selection-appearance-fix">
-/* v1.1.73：文字圖塊選取時，只保留藍色外層選取框；
+/* v1.1.75：文字圖塊選取時，只保留藍色外層選取框；
    文字、背景、內部邊框、內距完全沿用未選取的文字圖塊樣式。 */
 .flow-node.text-node.selected{
   background:#fff7ed !important;
@@ -1416,7 +1416,7 @@ body.dark .flow-node.text-node.selected .dn-type{
 
 
 <style id="node-dimension-box-sizing-fix">
-/* v1.1.73：圖框寬高以節點外框尺寸為準。
+/* v1.1.75：圖框寬高以節點外框尺寸為準。
    避免 border / padding 在選取狀態下改變實際顯示尺寸。 */
 .flow-node{
   box-sizing:border-box !important;
@@ -1429,8 +1429,8 @@ body.dark .flow-node.text-node.selected .dn-type{
 </head>
 <body class="dark">
 <header>
-  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.73</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
-  <span class="badge">v1.1.73</span>
+  <div class="logo"><span id="appTitle" class="app-title" title="雙擊重新命名">樹狀圖整理工具_v1.1.76</span><button id="renameBtn" class="rename-btn" type="button" title="重新命名">重新命名</button></div>
+  <span class="badge">v1.1.75</span>
   <div class="toolbar">
     <button id="newFileBtn" type="button" onclick="newProject()">新增檔案</button>
     <button id="openFileBtn" onclick="openProject()">開啟舊檔</button>
@@ -4124,16 +4124,17 @@ document.addEventListener("keydown",handleFileShortcuts);
   scheduleAlign();
 })();
 
-/* v1.1.73：移除會攔截點擊的命中覆蓋路徑，改由 SVG 捕獲階段判定最近引線。 */
+/* v1.1.75：桌面網頁與手機統一使用 Pointer Events，在按下／放開階段判定最近引線。 */
 (function installConnectionProximitySelection(){
  const svg=document.getElementById("diagramSvg");
  if(!svg)return;
- svg.addEventListener("click",function(e){
-  if(!connectionSelectMode||previewConnections)return;
+ let press=null;
+
+ function nearestConnection(e){
   const ctm=svg.getScreenCTM?.();
-  if(!ctm)return;
-  let best=null,bestScreenDistance=Infinity;
-  const tolerance=72;
+  if(!ctm||!window.DOMPoint)return null;
+  let best=null,bestDistance=Infinity;
+  const tolerance=24;
   for(const c of connections||[]){
    if(isNodeHidden(c.from)||isNodeHidden(c.to))continue;
    const d=connectionPath(c);
@@ -4147,16 +4148,39 @@ document.addEventListener("keydown",handleFileShortcuts);
     const q=probe.getPointAtLength(total*i/steps);
     const screen=new DOMPoint(q.x,q.y).matrixTransform(ctm);
     const distance=Math.hypot(screen.x-e.clientX,screen.y-e.clientY);
-    if(distance<bestScreenDistance){bestScreenDistance=distance;best=c;}
+    if(distance<bestDistance){bestDistance=distance;best=c;}
    }
   }
-  if(best&&bestScreenDistance<=tolerance){
-   e.preventDefault();e.stopImmediatePropagation();
-   selectedConnIds.clear();selectedConn=best.id;
-   setStatus("已選取引線："+(nodeById(best.from)?.name||best.from)+" → "+(nodeById(best.to)?.name||best.to));
+  return best&&bestDistance<=tolerance?{connection:best,distance:bestDistance}:null;
+ }
+
+ svg.addEventListener("pointerdown",function(e){
+  if(!connectionSelectMode||previewConnections||e.button!==0)return;
+  const hit=nearestConnection(e);
+  press={pointerId:e.pointerId,x:e.clientX,y:e.clientY,hit};
+  if(hit){
+   e.preventDefault();
+   e.stopImmediatePropagation();
+  }
+ },true);
+
+ svg.addEventListener("pointerup",function(e){
+  if(!press||e.pointerId!==press.pointerId)return;
+  const p=press;press=null;
+  if(!connectionSelectMode||previewConnections)return;
+  if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>10)return;
+  const hit=nearestConnection(e);
+  if(hit){
+   e.preventDefault();
+   e.stopImmediatePropagation();
+   selectedConnIds.clear();
+   selectedConn=hit.connection.id;
+   setStatus("已選取引線："+(nodeById(hit.connection.from)?.name||hit.connection.from)+" → "+(nodeById(hit.connection.to)?.name||hit.connection.to));
    drawConnections();
   }
  },true);
+
+ svg.addEventListener("pointercancel",()=>{press=null;},true);
 })();
 </script>
 
